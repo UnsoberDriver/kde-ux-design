@@ -1,6 +1,6 @@
 # Correctifs UX KDE Plasma (Bazzite / Wayland)
 
-Deux correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
+Quatre correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
 **ASUS V16 (V3607VM)** :
 
 | Correctif | Effet |
@@ -8,8 +8,10 @@ Deux correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**,
 | [`installer-capture-shift-win-s.sh`](#1-capture-décran--shift--win--s-façon-windows) | `Shift + Win + S` capture une région, copie et enregistre — **sans aucune fenêtre** |
 | [`installer-clavier-toujours-allume.sh`](#2-rétroéclairage-du-clavier-toujours-allumé) | Le rétroéclairage du clavier **reste toujours allumé** |
 | [`installer-veille-jamais.sh`](#3-ni-veille-ni-extinction-décran-ni-verrouillage-automatique) | **Jamais** de veille, d'extinction d'écran ni de verrouillage automatique |
+| [`installer-touchpad-zones.sh`](#4-zones-du-pavé-tactile--bord-gauche-volume-bord-droit-luminosité) | **Bord gauche = volume**, **bord droit = luminosité** sur le pavé tactile |
 
-Tout s'installe **au niveau utilisateur** : aucun `sudo`, aucun paquet à installer.
+Tout s'installe **au niveau utilisateur** ; seul l'accès au pavé tactile et à la
+luminosité (deux règles udev) demande `root`, une fois.
 
 ## Prérequis
 
@@ -17,6 +19,9 @@ Tout s'installe **au niveau utilisateur** : aucun `sudo`, aucun paquet à instal
 - `spectacle`, `wl-clipboard` (`wl-copy`), `systemd` utilisateur
 - Pour le clavier : un portable exposant `/sys/class/leds/*kbd_backlight`
   (écriture accessible à l'utilisateur ; c'est le cas des ASUS avec `asus-wmi`)
+- Pour le pavé tactile : `python3-evdev`, `python3-pyside6`, `wpctl` (PipeWire)
+  — présents par défaut sur Bazzite — et un accès en écriture à
+  `/sys/class/backlight/*/brightness` (règle udev fournie)
 
 ---
 
@@ -188,12 +193,87 @@ Des copies de référence de la configuration appliquée sont conservées dans
 
 ---
 
+## 4. Zones du pavé tactile : bord gauche = volume, bord droit = luminosité
+
+### Résultat
+
+- **1 doigt posé au bord gauche** puis glissé haut/bas → **volume** (± 5 %) ;
+- **1 doigt posé au bord droit** puis glissé haut/bas → **luminosité** (± 5 %) ;
+- un OSD discret (volume / luminosité) apparaît en bas au milieu ;
+- tap **3 doigts** → `Alt+F4` (ferme la fenêtre active) ;
+- tap **3 doigts + clic physique** → écran de déconnexion ;
+- tap **4 doigts** → `Entrée`.
+
+Le moniteur est **passif** : il observe les événements du pavé sans les
+intercepter. Le curseur, le clic et le **scroll à 2 doigts** continuent de
+fonctionner normalement. Seules les bandes de 5 % aux bords, à la pose du
+doigt, sont détournées.
+
+### Installation
+
+```bash
+chmod +x installer-touchpad-zones.sh
+./installer-touchpad-zones.sh            # installe / répare
+./installer-touchpad-zones.sh --debug    # journal détaillé du démon
+./installer-touchpad-zones.sh --uninstall
+```
+
+Les deux règles udev (`/etc/udev/rules.d/`) ne sont écrites que si elles
+manquent : si `sudo` n'est pas disponible, l'installateur affiche les
+commandes à lancer une fois. Elles donnent à l'utilisateur l'accès en lecture
+au pavé tactile et en écriture à la luminosité.
+
+### Comment ça marche
+
+| Fichier | Rôle |
+|---|---|
+| `~/.local/bin/touchpad-zones.py` | lit le pavé via `python-evdev`, détecte les bandes de bord et agit |
+| `~/.local/bin/touchpad-osd.py` | overlay Qt en bas au milieu, piloté par un FIFO |
+| `~/.config/systemd/user/touchpad-zones.service` | démon (redémarrage automatique) |
+| `~/.config/systemd/user/touchpad-osd.service` | overlay |
+| `/etc/udev/rules.d/99-touchpad-volume.rules` | accès au périphérique du pavé |
+| `/etc/udev/rules.d/99-backlight-nico.rules` | accès en écriture à la luminosité |
+| règle KWin `touchpad-osd` (`kwinrulesrc`) | position de l'OSD en bas au milieu |
+
+Le volume passe par `wpctl` (PipeWire) et la luminosité par
+`/sys/class/backlight/*/brightness`.
+
+### Réglage
+
+Dans `~/.local/bin/touchpad-zones.py` :
+
+| Constante | Effet |
+|---|---|
+| `LEFT_FRACTION_1F` / `RIGHT_FRACTION_1F` | largeur des bandes de bord (5 %) |
+| `STEP_PX_1F` | sensibilité : pixels à parcourir par cran (160) |
+| `BRIGHT_STEP_PCT` | pas de luminosité (5 %) |
+| `X_MAX` | résolution horizontale du pavé (4645 pour l'ASUS V16) |
+
+Après modification : `systemctl --user restart touchpad-zones.service`.
+
+### Dépannage
+
+```bash
+systemctl --user status touchpad-zones.service
+journalctl --user -u touchpad-zones.service -f
+```
+
+- Rien ne se passe : vérifie que le démon surveille bien le pavé
+  (`surveillance de … Touchpad` dans le journal).
+- Le volume/luminosité change mais aucun OSD : `systemctl --user status touchpad-osd.service`
+  (PySide6 doit être présent).
+- La luminosité ne change pas : le fichier `brightness` n'est pas accessible
+  en écriture → applique la règle udev puis redémarre (ou rebranche).
+
+---
+
 ## Désinstallation complète
 
 ```bash
 ./installer-capture-shift-win-s.sh --uninstall
 ./installer-clavier-toujours-allume.sh --uninstall
 ./installer-veille-jamais.sh --uninstall
+./installer-touchpad-zones.sh --uninstall
 ```
 
 ## Structure du dépôt
@@ -203,6 +283,7 @@ Des copies de référence de la configuration appliquée sont conservées dans
 ├── installer-capture-shift-win-s.sh     # Shift+Win+S silencieux
 ├── installer-clavier-toujours-allume.sh # rétroéclairage toujours allumé
 ├── installer-veille-jamais.sh           # ni veille, ni extinction, ni verrouillage
+├── installer-touchpad-zones.sh          # bords du pavé : volume / luminosité
 ├── config/
 │   ├── powerdevilrc                     # copie de référence
 │   └── kscreenlockerrc                  # copie de référence
