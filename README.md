@@ -7,6 +7,7 @@ Deux correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**,
 |---|---|
 | [`installer-capture-shift-win-s.sh`](#1-capture-décran--shift--win--s-façon-windows) | `Shift + Win + S` capture une région, copie et enregistre — **sans aucune fenêtre** |
 | [`installer-clavier-toujours-allume.sh`](#2-rétroéclairage-du-clavier-toujours-allumé) | Le rétroéclairage du clavier **reste toujours allumé** |
+| [`installer-veille-jamais.sh`](#3-ni-veille-ni-extinction-décran-ni-verrouillage-automatique) | **Jamais** de veille, d'extinction d'écran ni de verrouillage automatique |
 
 Tout s'installe **au niveau utilisateur** : aucun `sudo`, aucun paquet à installer.
 
@@ -151,11 +152,48 @@ et le minuteur utilisateur prend le relais après le login.
 
 ---
 
+## 3. Ni veille, ni extinction d'écran, ni verrouillage automatique
+
+### Résultat
+
+- aucune veille automatique par inactivité (secteur, batterie, batterie faible) ;
+- aucune veille à la fermeture du capot ;
+- l'écran ne s'éteint pas et ne s'assombrit pas automatiquement ;
+- aucun verrouillage automatique (inactivité ou reprise de veille) ;
+- la **veille manuelle** (`systemctl suspend`) et le **verrouillage manuel** (`Meta+L`)
+  restent disponibles.
+
+### Installation
+
+```bash
+chmod +x installer-veille-jamais.sh
+./installer-veille-jamais.sh              # applique / répare
+./installer-veille-jamais.sh --uninstall  # remet les réglages KDE par défaut
+```
+
+### Comment ça marche
+
+Le script écrit les profils `AC`, `Battery` et `LowBattery` dans
+`~/.config/powerdevilrc` (groupes imbriqués `[profil][SuspendAndShutdown]` et
+`[profil][Display]`), puis désactive le verrouillage automatique dans
+`~/.config/kscreenlockerrc`. Il redémarre `plasma-powerdevil` pour appliquer
+à chaud (un simple rechargement ne suffit pas pour l'action du capot).
+Les réglages persistent après redémarrage.
+
+Des copies de référence de la configuration appliquée sont conservées dans
+`config/powerdevilrc` et `config/kscreenlockerrc` (réécrites à chaque exécution).
+
+> ⚠️ Sans veille ni verrouillage automatique, pense à verrouiller manuellement
+> (`Meta+L`) quand tu t'éloignes de la machine.
+
+---
+
 ## Désinstallation complète
 
 ```bash
 ./installer-capture-shift-win-s.sh --uninstall
 ./installer-clavier-toujours-allume.sh --uninstall
+./installer-veille-jamais.sh --uninstall
 ```
 
 ## Structure du dépôt
@@ -164,6 +202,10 @@ et le minuteur utilisateur prend le relais après le login.
 .
 ├── installer-capture-shift-win-s.sh     # Shift+Win+S silencieux
 ├── installer-clavier-toujours-allume.sh # rétroéclairage toujours allumé
+├── installer-veille-jamais.sh           # ni veille, ni extinction, ni verrouillage
+├── config/
+│   ├── powerdevilrc                     # copie de référence
+│   └── kscreenlockerrc                  # copie de référence
 └── README.md
 ```
 
