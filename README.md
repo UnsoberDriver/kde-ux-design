@@ -201,8 +201,8 @@ Des copies de référence de la configuration appliquée sont conservées dans
 - **1 doigt posé au bord gauche** puis glissé haut/bas → **volume** (± 5 %) ;
 - **1 doigt posé au bord droit** puis glissé haut/bas → **luminosité** (± 5 %) ;
 - un OSD discret (volume / luminosité) apparaît en bas au milieu ;
-- tap **3 doigts** → `Alt+F4` (ferme la fenêtre active) ;
-- tap **3 doigts + clic physique** → écran de déconnexion ;
+- tap **3 doigts** sur une application → **ferme la fenêtre active** ;
+- tap **3 doigts** sur le fond d'écran du bureau → **menu pour éteindre/redémarrer/…** ;
 - tap **4 doigts** → `Entrée`.
 
 Le moniteur est **passif** : il observe les événements du pavé sans les
@@ -228,7 +228,8 @@ au pavé tactile et en écriture à la luminosité.
 
 | Fichier | Rôle |
 |---|---|
-| `~/.local/bin/touchpad-zones.py` | lit le pavé via `python-evdev`, détecte les bandes de bord et agit |
+| `~/.local/bin/touchpad-zones.py` | lit le pavé via `python-evdev`, détecte les bandes de bord et les gestes |
+| `~/.local/bin/touchpad-3tap-action.js` | script KWin : 3 doigts → ferme la fenêtre, ou menu extinction si bureau |
 | `~/.local/bin/touchpad-osd.py` | overlay Qt en bas au milieu, piloté par un FIFO |
 | `~/.config/systemd/user/touchpad-zones.service` | démon (redémarrage automatique) |
 | `~/.config/systemd/user/touchpad-osd.service` | overlay |
@@ -325,7 +326,8 @@ Le réglage est pris en compte au prochain démarrage de session
 │   ├── kscreenlockerrc                  # copie de référence
 │   ├── kcminputrc                       # copie de référence
 │   └── touchpad-zones/                  # copies de référence (zones/gestes pavé)
-│       ├── touchpad-zones.py            # démon (3 doigts = Alt+F4, etc.)
+│       ├── touchpad-zones.py            # démon gestes + zones
+│       ├── touchpad-3tap-action.js       # 3 doigts : fermer app / menu extinction (bureau)
 │       ├── touchpad-osd.py              # OSD volume/luminosité
 │       ├── touchpad-zones.service
 │       └── touchpad-osd.service

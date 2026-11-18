@@ -39,13 +39,13 @@ VERTICAL_RATIO_2F = 1.2  # 2 doigts : idem (souple)
 NOISE_GATE = 8  # ignore les micro-mouvements par frame
 DEBUG_INTERVAL = 0.2  # delai mini entre 2 lignes de log en mode debug
 
-# taps multi-doigts : 3 doigts -> Alt+F4, 4 doigts -> Entree
-TAP_ACTIONS = {3: "altf4", 4: "enter"}
+# taps multi-doigts : 3 doigts -> fermer app / menu extinction (bureau), 4 doigts -> Entree
+TAP_ACTIONS = {3: "close", 4: "enter"}
 TAP_MAX_N = max(TAP_ACTIONS)
-TAP_SIMULT_S = 0.12  # ecart maxi de pose entre les 3 doigts (simultaneite)
+TAP_SIMULT_S = 0.12  # ecart maxi de pose entre les doigts (simultaneite)
 TAP_MAX_S = 0.35  # duree maxi du tap (pose -> relache complet)
 TAP_MAX_MOVE = 150  # mouvement maxi du centroide pendant le tap (unites)
-TAP_COOLDOWN = 1.0  # delai mini entre 2 Alt+F4
+TAP_COOLDOWN = 1.0  # delai mini entre 2 actions 3 doigts
 
 ABS_MT_SLOT = ecodes.ABS_MT_SLOT
 ABS_MT_TRACKING_ID = ecodes.ABS_MT_TRACKING_ID
@@ -94,23 +94,33 @@ def find_touchpad():
     return candidates[0] if candidates else None
 
 
-def send_alt_f4(ui):
-    """Emule Alt+F4 via le clavier virtuel uinput."""
-    if ui is None:
-        return False
+def do_3finger_action():
+    """Action contextuelle 3 doigts via script KWin :
+    bureau -> menu extinction, application -> fermer la fenêtre."""
+    script = os.path.expanduser("~/.local/bin/touchpad-3tap-action.js")
     try:
-        ui.write(ecodes.EV_KEY, ecodes.KEY_LEFTALT, 1)
-        ui.write(ecodes.EV_KEY, ecodes.KEY_F4, 1)
-        ui.syn()
-        time.sleep(0.05)
-        ui.write(ecodes.EV_KEY, ecodes.KEY_F4, 0)
-        ui.write(ecodes.EV_KEY, ecodes.KEY_LEFTALT, 0)
-        ui.syn()
-        print("tap 3 doigts -> Alt+F4", flush=True)
-        return True
-    except OSError as e:
-        print(f"envoi Alt+F4 impossible ({e})", flush=True)
-        return False
+        subprocess.run(["busctl", "--user", "call", "org.kde.KWin", "/Scripting",
+                        "org.kde.kwin.Scripting", "unloadScript", "s",
+                        "touchpad-3tap-action"],
+                       check=False, capture_output=True, timeout=2)
+        r = subprocess.run(["busctl", "--user", "call", "org.kde.KWin", "/Scripting",
+                            "org.kde.kwin.Scripting", "loadScript", "ss",
+                            script, "touchpad-3tap-action"],
+                           check=False, capture_output=True, text=True, timeout=2)
+        out = (r.stdout or "").strip()
+        if r.returncode == 0 and out.startswith("i "):
+            sid = out.split()[1]
+            subprocess.run(["busctl", "--user", "call", "org.kde.KWin",
+                            f"/Scripting/Script{sid}", "org.kde.kwin.Script", "run"],
+                           check=False, capture_output=True, timeout=2)
+            print("tap 3 doigts -> action contextuelle (bureau=menu extinction, app=fermer)",
+                  flush=True)
+            return True
+        print(f"action 3 doigts: chargement du script KWin impossible ({out or r.stderr.strip()})",
+              flush=True)
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"action 3 doigts impossible ({e})", flush=True)
+    return False
 
 
 def send_enter(ui):
@@ -130,32 +140,18 @@ def send_enter(ui):
         return False
 
 
-def show_logout_dialog():
-    """Affiche l'ecran de deconnexion (veille/redemarrer/eteindre/...)."""
-    try:
-        # busctl (qdbus n'existe plus dans Plasma 6)
-        subprocess.run(["busctl", "--user", "call", "org.kde.kglobalaccel",
-                        "/component/ksmserver",
-                        "org.kde.kglobalaccel.Component", "invokeShortcut",
-                        "s", "Log Out"],
-                       check=False, capture_output=True, timeout=2)
-        print("bureau actif -> ecran de deconnexion", flush=True)
-        return True
-    except (OSError, subprocess.SubprocessError) as e:
-        print(f"ecran de deconnexion impossible ({e})", flush=True)
-        return False
+
 
 
 def open_uinput():
     try:
         from evdev import UInput
-        ui = UInput({ecodes.EV_KEY: [ecodes.KEY_LEFTALT, ecodes.KEY_F4,
-                                     ecodes.KEY_ENTER]},
+        ui = UInput({ecodes.EV_KEY: [ecodes.KEY_ENTER]},
                     name="touchpad-zones-keys")
         print("clavier virtuel uinput OK", flush=True)
         return ui
     except (OSError, ImportError) as e:
-        print(f"uinput indisponible ({e}), Alt+F4 desactive", flush=True)
+        print(f"uinput indisponible ({e}), Entree (tap 4 doigts) desactive", flush=True)
         return None
 
 
@@ -274,8 +270,7 @@ def monitor(dev, ui):
                        if s.get("active") and "x" in s and "y" in s]
             n = len(fingers)
             now = time.monotonic()
-            # --- taps multi-doigts (3=Alt+F4, 4=Entree) ---
-            # appui physique (clic) a 3 doigts -> ecran de deconnexion
+            # --- taps multi-doigts (3=fermer/menu extinction, 4=Entree) ---
             if n in TAP_ACTIONS and tap is None and now - last_tap_fire >= TAP_COOLDOWN:
                 if n == 3:
                     # les 3 doigts doivent atterrir en meme temps
@@ -288,14 +283,12 @@ def monitor(dev, ui):
                                   flush=True)
                     else:
                         tap = {"action": TAP_ACTIONS[n], "t0": now, "moved": 0.0, "n_prev": n,
-                               "clicked": button_down,
                                "cx": sum(f["x"] for f in fingers) / n,
                                "cy": sum(f["y"] for f in fingers) / n}
                         if DEBUG:
                             print(f"debug candidat tap {n} doigts", flush=True)
                 else:
                     tap = {"action": TAP_ACTIONS[n], "t0": now, "moved": 0.0, "n_prev": n,
-                           "clicked": button_down,
                            "cx": sum(f["x"] for f in fingers) / n,
                            "cy": sum(f["y"] for f in fingers) / n}
                     if DEBUG:
@@ -306,21 +299,15 @@ def monitor(dev, ui):
                     if n == 0 or n > TAP_MAX_N:
                         tap = None
                 else:
-                    if button_down:
-                        tap["clicked"] = True
                     if n > TAP_MAX_N:
                         tap = None  # trop de doigts : annule
                     elif n == 0:
                         if now - tap["t0"] <= TAP_MAX_S and tap["moved"] <= TAP_MAX_MOVE:
-                            if DEBUG and tap["action"] == "altf4":
+                            if DEBUG and tap["action"] == "close":
                                 print(f"debug tap feu: duree={now-tap['t0']:.2f}s "
-                                      f"mouvement={tap['moved']:.0f} "
-                                      f"clic={tap.get('clicked', False)}", flush=True)
-                            if tap["action"] == "altf4":
-                                if tap["clicked"]:
-                                    ok = show_logout_dialog()
-                                else:
-                                    ok = send_alt_f4(ui)
+                                      f"mouvement={tap['moved']:.0f}", flush=True)
+                            if tap["action"] == "close":
+                                ok = do_3finger_action()
                             else:
                                 ok = send_enter(ui)
                             if ok:
@@ -409,7 +396,7 @@ def main():
         print(f"surveillance de {dev.name} ({dev.path}), "
               f"gauche 1 doigt volume x<={LEFT_X_MAX_1F} (pose initiale), "
               f"droite 1 doigt lum x>={RIGHT_X_MIN_1F} (pose initiale), "
-              f"tap 3 doigts=Alt+F4 (clic=deconnexion), tap 4 doigts=Entree",
+              f"tap 3 doigts=fermer app / menu extinction (bureau), tap 4 doigts=Entree",
               flush=True)
         try:
             monitor(dev, ui)
