@@ -1,0 +1,13 @@
+[Unit]
+Description=Touchpad zones volume/luminosite
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/touchpad-zones.py
+Environment=TOUCHPAD_VOL_DEBUG=0
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

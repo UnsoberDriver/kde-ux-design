@@ -318,12 +318,17 @@ Le réglage est pris en compte au prochain démarrage de session
 ├── installer-capture-shift-win-s.sh     # Shift+Win+S silencieux
 ├── installer-clavier-toujours-allume.sh # rétroéclairage toujours allumé
 ├── installer-veille-jamais.sh           # ni veille, ni extinction, ni verrouillage
-├── installer-touchpad-zones.sh          # bords du pavé : volume / luminosité
+├── installer-touchpad-zones.sh          # bords du pavé : volume / luminosité + gestes
 ├── installer-numlock-toujours-actif.sh  # Num Lock activé à chaque démarrage
 ├── config/
 │   ├── powerdevilrc                     # copie de référence
 │   ├── kscreenlockerrc                  # copie de référence
-│   └── kcminputrc                       # copie de référence
+│   ├── kcminputrc                       # copie de référence
+│   └── touchpad-zones/                  # copies de référence (zones/gestes pavé)
+│       ├── touchpad-zones.py            # démon (3 doigts = Alt+F4, etc.)
+│       ├── touchpad-osd.py              # OSD volume/luminosité
+│       ├── touchpad-zones.service
+│       └── touchpad-osd.service
 └── README.md
 ```
 
