@@ -1,6 +1,6 @@
 # Correctifs UX KDE Plasma (Bazzite / Wayland)
 
-Quatre correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
+Cinq correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
 **ASUS V16 (V3607VM)** :
 
 | Correctif | Effet |
@@ -9,6 +9,7 @@ Quatre correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)*
 | [`installer-clavier-toujours-allume.sh`](#2-rétroéclairage-du-clavier-toujours-allumé) | Le rétroéclairage du clavier **reste toujours allumé** |
 | [`installer-veille-jamais.sh`](#3-ni-veille-ni-extinction-décran-ni-verrouillage-automatique) | **Jamais** de veille, d'extinction d'écran ni de verrouillage automatique |
 | [`installer-touchpad-zones.sh`](#4-zones-du-pavé-tactile--bord-gauche-volume-bord-droit-luminosité) | **Bord gauche = volume**, **bord droit = luminosité** sur le pavé tactile |
+| [`installer-numlock-toujours-actif.sh`](#5-pavé-numérique-num-lock-toujours-activé-au-démarrage) | Le **pavé numérique (Num Lock)** est **activé** à chaque démarrage de session |
 
 Tout s'installe **au niveau utilisateur** ; seul l'accès au pavé tactile et à la
 luminosité (deux règles udev) demande `root`, une fois.
@@ -267,6 +268,39 @@ journalctl --user -u touchpad-zones.service -f
 
 ---
 
+## 5. Pavé numérique (Num Lock) toujours activé au démarrage
+
+### Résultat
+
+Le pavé numérique (**Num Lock**) est automatiquement activé à chaque démarrage
+de la session Plasma.
+
+### Installation
+
+```bash
+chmod +x installer-numlock-toujours-actif.sh
+./installer-numlock-toujours-actif.sh              # applique / répare
+./installer-numlock-toujours-actif.sh --uninstall  # revient au comportement KDE par défaut
+```
+
+### Comment ça marche
+
+Le script écrit la clé `NumLock` dans `~/.config/kcminputrc` (section `[Keyboard]`) :
+
+| Valeur | Effet |
+|---|---|
+| `0` | activer au démarrage |
+| `1` | désactiver au démarrage |
+| `2` | laisser l'état précédent (défaut KDE) |
+
+Une copie de référence de la configuration appliquée est conservée dans
+`config/kcminputrc` (réécrite à chaque exécution).
+
+Le réglage est pris en compte au prochain démarrage de session
+(*Paramètres système → Clavier → « Verrouillage numérique au démarrage de Plasma »*).
+
+---
+
 ## Désinstallation complète
 
 ```bash
@@ -274,6 +308,7 @@ journalctl --user -u touchpad-zones.service -f
 ./installer-clavier-toujours-allume.sh --uninstall
 ./installer-veille-jamais.sh --uninstall
 ./installer-touchpad-zones.sh --uninstall
+./installer-numlock-toujours-actif.sh --uninstall
 ```
 
 ## Structure du dépôt
@@ -284,9 +319,11 @@ journalctl --user -u touchpad-zones.service -f
 ├── installer-clavier-toujours-allume.sh # rétroéclairage toujours allumé
 ├── installer-veille-jamais.sh           # ni veille, ni extinction, ni verrouillage
 ├── installer-touchpad-zones.sh          # bords du pavé : volume / luminosité
+├── installer-numlock-toujours-actif.sh  # Num Lock activé à chaque démarrage
 ├── config/
 │   ├── powerdevilrc                     # copie de référence
-│   └── kscreenlockerrc                  # copie de référence
+│   ├── kscreenlockerrc                  # copie de référence
+│   └── kcminputrc                       # copie de référence
 └── README.md
 ```
 
