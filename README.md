@@ -1,6 +1,6 @@
 # Correctifs UX KDE Plasma (Bazzite / Wayland)
 
-Cinq correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
+Six correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
 **ASUS V16 (V3607VM)** :
 
 | Correctif | Effet |
@@ -10,6 +10,7 @@ Cinq correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**,
 | [`installer-veille-jamais.sh`](#3-ni-veille-ni-extinction-décran-ni-verrouillage-automatique) | **Jamais** de veille, d'extinction d'écran ni de verrouillage automatique |
 | [`installer-touchpad-zones.sh`](#4-zones-du-pavé-tactile--bord-gauche-volume-bord-droit-luminosité) | **Bord gauche = volume**, **bord droit = luminosité** sur le pavé tactile |
 | [`installer-numlock-toujours-actif.sh`](#5-pavé-numérique-num-lock-toujours-activé-au-démarrage) | Le **pavé numérique (Num Lock)** est **activé** à chaque démarrage de session |
+| [`installer-icones-monochromes.sh`](#6-icônes-dapplications-en-monochrome-thème-sombre) | Les **icônes des applications** (système, Flatpak, Chromium, OpenCode, Dolphin…) en **monochrome** adapté au thème sombre |
 
 Tout s'installe **au niveau utilisateur** ; seul l'accès au pavé tactile et à la
 luminosité (deux règles udev) demande `root`, une fois.
@@ -302,6 +303,54 @@ Le réglage est pris en compte au prochain démarrage de session
 
 ---
 
+## 6. Icônes d'applications en monochrome (thème sombre)
+
+### Résultat
+
+- les **icônes/logos des applications** (système, Flatpak, Chromium, Dolphin,
+  OpenCode, etc.) sont remplacés par des icônes **monochromes blanches**,
+  adaptées aux thèmes sombres ;
+- tout s'installe **au niveau utilisateur** via des surcharges de lanceurs
+  (`~/.local/share/applications`) et des icônes locales — compatible avec les
+  systèmes immuables comme Bazzite (aucun `root` nécessaire).
+
+> Remarque : ce sont des icônes symboliques/monochromes (formes simplifiées).
+> Lorsqu'il n'existe pas de variante de marque adaptée, une icône générique
+> proche est utilisée.
+
+### Installation
+
+```bash
+chmod +x installer-icones-monochromes.sh
+./installer-icones-monochromes.sh              # applique / répare
+./installer-icones-monochromes.sh --uninstall  # supprime surcharges et icônes
+```
+
+### Comment ça marche
+
+| Fichier | Rôle |
+|---|---|
+| `~/.local/share/icons/custom-black/*-mono.svg` | icônes monochromes installées |
+| `~/.local/share/icons/hicolor/scalable/apps/*-mono.svg` | copies dans le thème hicolor utilisateur |
+| `~/.local/share/applications/<app>.desktop` | surcharge du lanceur pour pointer vers l'icône monochrome |
+| `~/.local/share/applications/opencode.desktop` | lanceur créé si `opencode` est installé |
+
+Des copies de référence des icônes sont conservées dans
+`config/icones-monochromes/` (réécrites à chaque exécution du dépôt/script selon
+le cas d'usage).
+
+### À savoir
+
+- **Barre des tâches / icônes épinglées** : Plasma garde souvent l'ancienne
+  icône en cache. Quitte l'application, **détache** l'icône épinglée puis
+  **réépingle-la** depuis le menu des applications. Si besoin, déconnecte/
+  reconnecte la session (ou redémarre) pour purger le cache du panneau.
+- Redémarre les applications ouvertes pour qu'elles reprennent la nouvelle icône.
+- Si une application précise n'est pas couverte, il suffit d'ajouter/ajuster son
+  lanceur dans `~/.local/share/applications/` et l'icône correspondante.
+
+---
+
 ## Désinstallation complète
 
 ```bash
@@ -310,6 +359,7 @@ Le réglage est pris en compte au prochain démarrage de session
 ./installer-veille-jamais.sh --uninstall
 ./installer-touchpad-zones.sh --uninstall
 ./installer-numlock-toujours-actif.sh --uninstall
+./installer-icones-monochromes.sh --uninstall
 ```
 
 ## Structure du dépôt
@@ -321,16 +371,18 @@ Le réglage est pris en compte au prochain démarrage de session
 ├── installer-veille-jamais.sh           # ni veille, ni extinction, ni verrouillage
 ├── installer-touchpad-zones.sh          # bords du pavé : volume / luminosité + gestes
 ├── installer-numlock-toujours-actif.sh  # Num Lock activé à chaque démarrage
+├── installer-icones-monochromes.sh      # icônes d'applications en monochrome (thème sombre)
 ├── config/
 │   ├── powerdevilrc                     # copie de référence
 │   ├── kscreenlockerrc                  # copie de référence
 │   ├── kcminputrc                       # copie de référence
-│   └── touchpad-zones/                  # copies de référence (zones/gestes pavé)
-│       ├── touchpad-zones.py            # démon gestes + zones
-│       ├── touchpad-3tap-action.js       # 3 doigts : fermer app / menu extinction (bureau)
-│       ├── touchpad-osd.py              # OSD volume/luminosité
-│       ├── touchpad-zones.service
-│       └── touchpad-osd.service
+│   ├── touchpad-zones/                  # copies de référence (zones/gestes pavé)
+│   │   ├── touchpad-zones.py            # démon gestes + zones
+│   │   ├── touchpad-3tap-action.js       # 3 doigts : fermer app / menu extinction (bureau)
+│   │   ├── touchpad-osd.py              # OSD volume/luminosité
+│   │   ├── touchpad-zones.service
+│   │   └── touchpad-osd.service
+│   └── icones-monochromes/              # icônes SVG monochromes de référence
 └── README.md
 ```
 
