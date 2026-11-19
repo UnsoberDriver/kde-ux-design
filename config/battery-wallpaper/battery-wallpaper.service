@@ -1,0 +1,12 @@
+[Unit]
+Description=Fond d'écran noir immédiat sur batterie
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/battery-wallpaper.py watch
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
