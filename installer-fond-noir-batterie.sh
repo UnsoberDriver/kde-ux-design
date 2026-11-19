@@ -12,15 +12,16 @@
 #    ~/.local/bin/battery-wallpaper.py           -> démon de bascule
 #    ~/.config/battery-wallpaper.conf            -> réglages (noir / image)
 #    ~/.config/systemd/user/battery-wallpaper.service
-#    ~/.local/state/battery-wallpaper/           -> sauvegarde du fond d'origine
+#    ~/.local/state/battery-wallpaper/           -> sauvegarde du dernier fond utilisé
 #
 #  À CÔTÉ DE CE SCRIPT
 #    config/battery-wallpaper/  -> copies de référence (script, conf, service)
 #
 #  COMMENT ÇA MARCHE
 #    Le démon écoute le signal D-Bus de UPower (OnBattery) : aucune attenuation,
-#    aucun sondage. Le fond animé est sauvegardé une fois puis restauré au
-#    retour du secteur.
+#    aucun sondage. Le fond actif est sauvegardé à chaque débranchement puis
+#    restauré au retour du secteur : c'est toujours le dernier fond utilisé
+#    qui revient.
 #
 #  UTILISATION
 #    chmod +x installer-fond-noir-batterie.sh

@@ -12,7 +12,7 @@ Huit correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE P
 | [`installer-numlock-toujours-actif.sh`](#5-pavé-numérique-num-lock-toujours-activé-au-démarrage) | Le **pavé numérique (Num Lock)** est **activé** à chaque démarrage de session |
 | [`installer-icones-monochromes.sh`](#6-icônes-dapplications-en-monochrome-thème-sombre) | Les **icônes des applications** (système, Flatpak, Chromium, OpenCode, Dolphin…) en **monochrome** adapté au thème sombre |
 | [`installer-firefox-config.sh`](#7-configuration-firefox-barre-de-favoris-en-icônes-seules) | **Firefox** (Flatpak) : barre personnelle en **icônes seules** (`userChrome.css`) et intégration Plasma |
-| [`installer-fond-noir-batterie.sh`](#8-fond-décran-noir-automatique-sur-batterie) | **Fond noir pur** immédiat sur batterie, fond d'origine restauré au rebranchement |
+| [`installer-fond-noir-batterie.sh`](#8-fond-décran-noir-automatique-sur-batterie) | **Fond noir pur** immédiat sur batterie, **dernier fond utilisé** restauré au rebranchement |
 
 Tout s'installe **au niveau utilisateur** ; seul l'accès au pavé tactile et à la
 luminosité (deux règles udev) demande `root`, une fois.
@@ -401,7 +401,7 @@ Des copies de référence sont conservées dans `config/firefox/` (`user.js`,
 ### Résultat
 
 - Dès que le chargeur est débranché, le fond passe en **noir pur `#000000`** (bascule mesurée en 0,05–0,1 s).
-- Au rebranchement, le **fond d'écran d'origine est restauré** automatiquement (même délai).
+- Au rebranchement, le **dernier fond utilisé est restauré** automatiquement (même délai).
 - Gain mesuré sur l'ASUS V16 (RTX 5060 Laptop) : d'environ **28 W à 14 W** quand le fond animé Wallpaper Engine (vidéo MP4) est actif — soit près de **50 % d'autonomie en plus**.
 
 ### Installation
@@ -415,7 +415,7 @@ Aucun `root` nécessaire. L'installateur est idempotent : le relancer répare/ac
 
 ### Comment ça marche
 
-Un service utilisateur (`battery-wallpaper.service`) écoute le **signal D-Bus de UPower** (`OnBattery`) : pas de sondage, pas de délai de timer. Le fond animé est sauvegardé une seule fois dans `~/.local/state/battery-wallpaper/original.json`, puis restauré au retour du secteur.
+Un service utilisateur (`battery-wallpaper.service`) écoute le **signal D-Bus de UPower** (`OnBattery`) : pas de sondage, pas de délai de timer. Le fond actif est sauvegardé à **chaque débranchement** dans `~/.local/state/battery-wallpaper/original.json`, puis restauré au retour du secteur. Si tu changes de fond sur secteur, c'est ce nouveau fond qui sera enregistré lors de la prochaine déconnexion.
 
 Fichiers créés :
 
@@ -424,7 +424,7 @@ Fichiers créés :
 | `~/.local/bin/battery-wallpaper.py` | démon de bascule |
 | `~/.config/battery-wallpaper.conf` | réglages (`mode=black`, `color=#000000`) |
 | `~/.config/systemd/user/battery-wallpaper.service` | service utilisateur |
-| `~/.local/state/battery-wallpaper/original.json` | sauvegarde du fond animé |
+| `~/.local/state/battery-wallpaper/original.json` | sauvegarde du dernier fond utilisé |
 
 ### Réglage
 
@@ -451,11 +451,10 @@ systemctl --user status battery-wallpaper.service
 journalctl --user -u battery-wallpaper.service -f
 ```
 
-Si le fond animé ne revient pas après un rebranchement :
+Si le dernier fond ne revient pas après un rebranchement :
 `~/.local/bin/battery-wallpaper.py force-restore`.
 
-Si tu as **changé ton fond animé** depuis l'installation, supprime
-`~/.local/state/battery-wallpaper/original.json` pour que le nouveau fond soit enregistré lors de la prochaine déconnexion.
+Le fond est **ré-enregistré automatiquement à chaque déconnexion** : il n'est plus nécessaire de supprimer `original.json` après avoir changé de fond.
 
 ### Désinstallation
 

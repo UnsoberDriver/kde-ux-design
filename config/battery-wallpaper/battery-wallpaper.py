@@ -2,8 +2,9 @@
 """Fond d'écran noir automatique et immédiat sur batterie.
 
 Écoute le signal D-Bus de UPower (OnBattery) : aucune attenuation, pas de
-sondage. Le fond animé d'origine est sauvegardé puis restauré au retour du
-secteur. Réglages : ~/.config/battery-wallpaper.conf
+sondage. Le fond actif est sauvegardé à chaque débranchement, puis restauré
+au retour du secteur : c'est toujours le dernier fond utilisé qui revient.
+Réglages : ~/.config/battery-wallpaper.conf
 """
 import json
 import os
@@ -52,7 +53,14 @@ def get_wallpaper():
 
 
 def set_wallpaper(plugin, cfg):
-    real = {k: v for k, v in cfg.items() if not k.endswith("Default")}
+    real = {}
+    for key, value in cfg.items():
+        if key.endswith("Default"):
+            continue
+        # dbus-python ne devine pas le signature d'une liste vide : on la type.
+        if isinstance(value, list) and not value:
+            value = dbus.Array([], signature="s")
+        real[key] = value
     IFACE.setWallpaper(plugin, real, 0)
 
 
@@ -117,7 +125,9 @@ def apply_state(on_bat):
     STATE.mkdir(parents=True, exist_ok=True)
     plugin, cfg = get_wallpaper()
     if on_bat:
-        if not ORIGINAL.exists() and not is_static(plugin, cfg):
+        # On capture le fond actif à chaque débranchement : si l'utilisateur
+        # a changé de fond sur secteur, c'est ce dernier qui sera restauré.
+        if not is_static(plugin, cfg):
             save_original(plugin, cfg)
         if not APPLIED.exists() or not is_static(plugin, cfg):
             apply_static()
@@ -125,7 +135,7 @@ def apply_state(on_bat):
     elif APPLIED.exists():
         if ORIGINAL.exists() and is_static(plugin, cfg):
             restore_original()
-            print("secteur : fond animé restauré", flush=True)
+            print("secteur : dernier fond restauré", flush=True)
         APPLIED.unlink(missing_ok=True)
 
 
