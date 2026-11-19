@@ -1,6 +1,6 @@
 # Correctifs UX KDE Plasma (Bazzite / Wayland)
 
-Six correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
+Sept correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
 **ASUS V16 (V3607VM)** :
 
 | Correctif | Effet |
@@ -11,6 +11,7 @@ Six correctifs « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, 
 | [`installer-touchpad-zones.sh`](#4-zones-du-pavé-tactile--bord-gauche-volume-bord-droit-luminosité) | **Bord gauche = volume**, **bord droit = luminosité** sur le pavé tactile |
 | [`installer-numlock-toujours-actif.sh`](#5-pavé-numérique-num-lock-toujours-activé-au-démarrage) | Le **pavé numérique (Num Lock)** est **activé** à chaque démarrage de session |
 | [`installer-icones-monochromes.sh`](#6-icônes-dapplications-en-monochrome-thème-sombre) | Les **icônes des applications** (système, Flatpak, Chromium, OpenCode, Dolphin…) en **monochrome** adapté au thème sombre |
+| [`installer-firefox-config.sh`](#7-configuration-firefox-barre-de-favoris-en-icônes-seules) | **Firefox** (Flatpak) : barre personnelle en **icônes seules** (`userChrome.css`) et intégration Plasma |
 
 Tout s'installe **au niveau utilisateur** ; seul l'accès au pavé tactile et à la
 luminosité (deux règles udev) demande `root`, une fois.
@@ -351,6 +352,49 @@ le cas d'usage).
 
 ---
 
+## 7. Configuration Firefox (barre de favoris en icônes seules)
+
+> S'applique à **Firefox Flatpak** (`org.mozilla.firefox`, profil utilisateur sous
+> `~/.var/app/org.mozilla.firefox`).
+
+### Résultat
+
+- la **barre personnelle** (favoris) affiche les favoris en **icônes seules**
+  (libellés masqués, bouton « Importer les marque-pages… » masqué, espacement ajusté) ;
+- activation du chargement des personnalisations d'interface (`chrome/userChrome.css`)
+  via `user.js` ;
+- surcharge Flatpak pour l'**intégration Plasma navigateur**.
+
+### Installation
+
+```bash
+chmod +x installer-firefox-config.sh
+./installer-firefox-config.sh              # applique / répare
+./installer-firefox-config.sh --uninstall  # retire cette personnalisation
+```
+
+### Comment ça marche
+
+| Fichier | Rôle |
+|---|---|
+| `~/.var/app/org.mozilla.firefox/config/mozilla/firefox/<profil>/user.js` | active `toolkit.legacyUserProfileCustomizations.stylesheets` |
+| `~/.var/app/org.mozilla.firefox/config/mozilla/firefox/<profil>/chrome/userChrome.css` | style de la barre personnelle (icônes seules) |
+| `~/.local/share/flatpak/overrides/org.mozilla.firefox` | surcharge Flatpak (intégration Plasma navigateur) |
+
+Des copies de référence sont conservées dans `config/firefox/` (`user.js`,
+`chrome/userChrome.css`, `flatpak-override.org.mozilla.firefox`,
+`org.mozilla.firefox.desktop`).
+
+### À savoir
+
+- **Redémarre Firefox** pour appliquer `user.js` et `userChrome.css`.
+- L'icône monochrome du lanceur Firefox est gérée par
+  [`installer-icones-monochromes.sh`](#6-icônes-dapplications-en-monochrome-thème-sombre).
+- Si tu as plusieurs profils, le script cible le profil par défaut (d'après
+  `profiles.ini`, sinon le premier `*.default-release`).
+
+---
+
 ## Désinstallation complète
 
 ```bash
@@ -360,6 +404,7 @@ le cas d'usage).
 ./installer-touchpad-zones.sh --uninstall
 ./installer-numlock-toujours-actif.sh --uninstall
 ./installer-icones-monochromes.sh --uninstall
+./installer-firefox-config.sh --uninstall
 ```
 
 ## Structure du dépôt
@@ -372,10 +417,17 @@ le cas d'usage).
 ├── installer-touchpad-zones.sh          # bords du pavé : volume / luminosité + gestes
 ├── installer-numlock-toujours-actif.sh  # Num Lock activé à chaque démarrage
 ├── installer-icones-monochromes.sh      # icônes d'applications en monochrome (thème sombre)
+├── installer-firefox-config.sh          # configuration Firefox (barre de favoris en icônes seules)
 ├── config/
 │   ├── powerdevilrc                     # copie de référence
 │   ├── kscreenlockerrc                  # copie de référence
 │   ├── kcminputrc                       # copie de référence
+│   ├── firefox/                         # configuration Firefox de référence
+│   │   ├── user.js
+│   │   ├── chrome/
+│   │   │   └── userChrome.css
+│   │   ├── flatpak-override.org.mozilla.firefox
+│   │   └── org.mozilla.firefox.desktop
 │   ├── touchpad-zones/                  # copies de référence (zones/gestes pavé)
 │   │   ├── touchpad-zones.py            # démon gestes + zones
 │   │   ├── touchpad-3tap-action.js       # 3 doigts : fermer app / menu extinction (bureau)

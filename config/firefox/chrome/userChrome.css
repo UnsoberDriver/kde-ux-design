@@ -1,0 +1,24 @@
+/* Barre de favoris : icônes seules, collées à gauche.
+   Fichier : <profil>/chrome/userChrome.css
+   Nécessite toolkit.legacyUserProfileCustomizations.stylesheets = true
+   Pour annuler : supprimer ce fichier (ou vider son contenu). */
+
+/* 1) Cacher le bouton « Importer les marque-pages… » qui occupait la gauche */
+#PersonalToolbar #import-button {
+  display: none !important;
+}
+
+/* 2) Masquer les noms des favoris (Firefox force sinon l'affichage du label) */
+#PlacesToolbarItems > .bookmark-item > .toolbarbutton-text {
+  display: none !important;
+}
+
+/* 3) Enlever la marge prévue pour le texte à droite de l'icône */
+#PlacesToolbarItems > .bookmark-item > .toolbarbutton-icon {
+  margin-inline-end: 0 !important;
+}
+
+/* 4) Un peu d'espace autour de chaque icône pour que ce soit cliquable et lisible */
+#PlacesToolbarItems > .bookmark-item {
+  padding-inline: 6px !important;
+}
