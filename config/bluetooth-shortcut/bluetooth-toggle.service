@@ -1,0 +1,12 @@
+[Unit]
+Description=AltGr+; bascule le Bluetooth
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/bluetooth-toggle.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

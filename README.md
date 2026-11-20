@@ -1,6 +1,6 @@
 # Correctifs UX KDE Plasma (Bazzite / Wayland)
 
-Huit correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
+Neuf correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
 **ASUS V16 (V3607VM)** :
 
 | Correctif | Effet |
@@ -13,6 +13,7 @@ Huit correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE P
 | [`installer-icones-monochromes.sh`](#6-icônes-dapplications-en-monochrome-thème-sombre) | Les **icônes des applications** (système, Flatpak, Chromium, OpenCode, Dolphin…) en **monochrome** adapté au thème sombre |
 | [`installer-firefox-config.sh`](#7-configuration-firefox-barre-de-favoris-en-icônes-seules) | **Firefox** (Flatpak) : barre personnelle en **icônes seules** (`userChrome.css`) et intégration Plasma |
 | [`installer-fond-noir-batterie.sh`](#8-fond-décran-noir-automatique-sur-batterie) | **Fond noir pur** immédiat sur batterie, **dernier fond utilisé** restauré au rebranchement |
+| [`installer-bluetooth-altgr-semicolon.sh`](#9-raccourci-bluetooth) | `AltGr + ;` **allume / éteint le Bluetooth** immédiatement, sous Wayland |
 
 Tout s'installe **au niveau utilisateur** ; seul l'accès au pavé tactile et à la
 luminosité (deux règles udev) demande `root`, une fois.
@@ -466,6 +467,73 @@ Le fond d'origine est restauré, le service et les fichiers sont supprimés.
 
 ---
 
+## 9. Raccourci Bluetooth
+
+### Résultat
+
+- `AltGr + ;` allume ou éteint **instantanément** le Bluetooth.
+- Une notification confirme l'état (« Bluetooth activé / désactivé »).
+- Fonctionne sous **Wayland**, sans accès brut aux périphériques d'entrée et sans `root`.
+- Le lancement manuel des applications reste inchangé.
+
+### Installation
+
+```bash
+chmod +x installer-bluetooth-altgr-semicolon.sh
+./installer-bluetooth-altgr-semicolon.sh
+```
+
+L'installateur est idempotent : le relancer répare/actualise l'installation.
+
+### Comment ça marche
+
+Un petit démon utilisateur (`bluetooth-toggle.service`) enregistre l'action
+`com.nico.bluetooth / toggle` auprès de **KGlobalAccel**, le système de
+raccourcis globaux de KDE, puis écoute le signal `globalShortcutPressed`.
+Il bascule l'alimentation de l'adaptateur via D-Bus (`org.bluez.Adapter1.Powered`).
+
+Le piège sur un clavier **français** : `AltGr + ;` ne produit pas `;` mais le
+symbole de niveau 3 de la touche `<AB08>` — `•` (puce) sur `fr` par défaut,
+`×` sur `fr(oss)`, `·` sur `fr(oss_latin9)`. De plus, XKB **consomme** AltGr
+pour produire ce symbole : KWin voit donc le plus souvent `•` **sans**
+modificateur. Le démon enregistre les trois symboles, avec et sans
+`GroupSwitchModifier`, ce qui couvre toutes les variantes.
+
+Fichiers créés :
+
+| Fichier | Rôle |
+|---|---|
+| `~/.local/bin/bluetooth-toggle.py` | démon d'écoute et de bascule D-Bus |
+| `~/.config/systemd/user/bluetooth-toggle.service` | service utilisateur |
+
+### Dépannage
+
+```bash
+systemctl --user status bluetooth-toggle.service
+journalctl --user -u bluetooth-toggle.service -f
+```
+
+Pour vérifier ce que KDE a enregistré :
+
+```bash
+python3 - <<'PY'
+import dbus
+i = dbus.SessionBus().get_object("org.kde.kglobalaccel", "/kglobalaccel")
+a = ["com.nico.bluetooth", "toggle", "Bluetooth", "Basculer le Bluetooth"]
+print([hex(int(k)) for k in i.shortcut(a, dbus_interface="org.kde.KGlobalAccel")])
+PY
+```
+
+### Désinstallation
+
+```bash
+./installer-bluetooth-altgr-semicolon.sh --uninstall
+```
+
+Le service, le script et le raccourci KGlobalAccel sont retirés.
+
+---
+
 ## Désinstallation complète
 
 ```bash
@@ -477,6 +545,7 @@ Le fond d'origine est restauré, le service et les fichiers sont supprimés.
 ./installer-icones-monochromes.sh --uninstall
 ./installer-firefox-config.sh --uninstall
 ./installer-fond-noir-batterie.sh --uninstall
+./installer-bluetooth-altgr-semicolon.sh --uninstall
 ```
 
 ## Structure du dépôt
@@ -491,6 +560,7 @@ Le fond d'origine est restauré, le service et les fichiers sont supprimés.
 ├── installer-icones-monochromes.sh      # icônes d'applications en monochrome (thème sombre)
 ├── installer-firefox-config.sh          # configuration Firefox (barre de favoris en icônes seules)
 ├── installer-fond-noir-batterie.sh      # fond noir immédiat sur batterie, restauration au secteur
+├── installer-bluetooth-altgr-semicolon.sh # AltGr+; allume/éteint le Bluetooth
 ├── config/
 │   ├── powerdevilrc                     # copie de référence
 │   ├── kscreenlockerrc                  # copie de référence
@@ -508,10 +578,13 @@ Le fond d'origine est restauré, le service et les fichiers sont supprimés.
 │   │   ├── touchpad-zones.service
 │   │   └── touchpad-osd.service
 │   ├── icones-monochromes/              # icônes SVG monochromes de référence
-│   └── battery-wallpaper/               # fond noir sur batterie (copies de référence)
-│       ├── battery-wallpaper.py          # démon D-Bus UPower
-│       ├── battery-wallpaper.conf        # réglages (noir / image)
-│       └── battery-wallpaper.service     # unité systemd utilisateur
+│   ├── battery-wallpaper/               # fond noir sur batterie (copies de référence)
+│   │   ├── battery-wallpaper.py          # démon D-Bus UPower
+│   │   ├── battery-wallpaper.conf        # réglages (noir / image)
+│   │   └── battery-wallpaper.service     # unité systemd utilisateur
+│   └── bluetooth-shortcut/              # AltGr+; -> Bluetooth (copies de référence)
+│       ├── bluetooth-toggle.py           # démon KGlobalAccel + BlueZ
+│       └── bluetooth-toggle.service      # unité systemd utilisateur
 └── README.md
 ```
 
