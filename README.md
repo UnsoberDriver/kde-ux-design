@@ -1,6 +1,6 @@
 # Correctifs UX KDE Plasma (Bazzite / Wayland)
 
-Neuf correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
+Dix correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE Plasma 6 (Wayland)**, testés sur un
 **ASUS V16 (V3607VM)** :
 
 | Correctif | Effet |
@@ -14,6 +14,7 @@ Neuf correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE P
 | [`installer-firefox-config.sh`](#7-configuration-firefox-barre-de-favoris-en-icônes-seules) | **Firefox** (Flatpak) : barre personnelle en **icônes seules** (`userChrome.css`) et intégration Plasma |
 | [`installer-fond-noir-batterie.sh`](#8-fond-décran-noir-automatique-sur-batterie) | **Fond noir pur** immédiat sur batterie, **dernier fond utilisé** restauré au rebranchement |
 | [`installer-bluetooth-altgr-semicolon.sh`](#9-raccourci-bluetooth) | `AltGr + ;` **allume / éteint le Bluetooth** immédiatement, sous Wayland |
+| [`installer-barre-taches-trait-blanc.sh`](#10-barre-des-tâches-épurée--trait-blanc-sous-les-applis-ouvertes) | Barre épurée (plus de CPU ni de « réduire tout ») et **trait blanc sous les applis ouvertes**, sans changement de fond |
 
 Tout s'installe **au niveau utilisateur** ; seul l'accès au pavé tactile et à la
 luminosité (deux règles udev) demande `root`, une fois.
@@ -534,6 +535,80 @@ Le service, le script et le raccourci KGlobalAccel sont retirés.
 
 ---
 
+## 10. Barre des tâches épurée + trait blanc sous les applis ouvertes
+
+### Résultat
+
+- plus de **widget CPU** dans le panneau ;
+- plus de bouton **« réduire toutes les fenêtres »** ;
+- les **applications épinglées restent intactes** (aucune n'est retirée ni réordonnée) ;
+- quand une application est ouverte, un **trait blanc** apparaît sous son icône ;
+- **aucun changement de couleur de fond** : une fenêtre active, inactive, minimisée,
+  demandant l'attention ou survolée a exactement le même fond transparent que
+  n'importe quel lanceur.
+
+### Installation
+
+```bash
+chmod +x installer-barre-taches-trait-blanc.sh
+./installer-barre-taches-trait-blanc.sh
+```
+
+L'installateur est idempotent : le relancer répare/actualise l'installation.
+
+### Comment ça marche
+
+Le gestionnaire de tâches (`org.kde.plasma.icontasks`) dessine son fond et son
+indicateur avec les éléments SVG de `widgets/tasks`. Le QML choisit un **préfixe
+différent selon l'état** du bouton :
+
+| État | Préfixe SVG | Avant |
+|---|---|---|
+| appli ouverte, inactive | `normal-*` | fond gris très clair |
+| appli active | `focus-*` | fond bleu à 45 % |
+| appli minimisée | `minimized-*` | fond atténué |
+| attention | `attention-*` | fond orange |
+| survol | `hover-*` | fond bleu clair |
+
+Un simple réglage de couleur ne suffit donc pas : à chaque changement d'état,
+un autre élément SVG prend le dessus. Le correctif crée un thème local
+**Vapor White Line** (copie du thème Vapor, jamais modifié) dans lequel :
+
+- tous les éléments de fond (`center`, `top`, `left`, `right`, les quatre coins)
+  passent à `opacity="0"` pour **chaque** état ;
+- seul l'élément `bottom` passe en `fill="#ffffff"` et `opacity="1"` ;
+- le trait blanc couvre toute la largeur du bouton (étirement 9-slice).
+
+Deux pièges traités par l'installateur :
+
+1. **Le cache KSvg** (`~/.cache/ksvg-elements`) mémorise l'ancien SVG : il est
+   vidé avant chaque redémarrage de `plasmashell`, sinon les bordures colorées
+   reviennent.
+2. **Les règles KWin `skiptaskbar=true`** masquent la fenêtre elle-même dans la
+   barre : sans indicateur possible. L'installateur retire ces règles (une
+   éventuelle règle de OSD tactile est préservée). C'est pour cela qu'une
+   « barre épurée » ne doit **pas** passer par une règle KWin globale.
+
+Fichiers créés / modifiés :
+
+| Fichier | Rôle |
+|---|---|
+| `~/.local/share/plasma/desktoptheme/VaporWhiteLine/` | thème local (tasks.svgz, colors, metadata) |
+| `~/.config/plasmarc` | thème actif |
+| `~/.config/plasma-org.kde.plasma.desktop-appletsrc` | retrait des applets CPU et « réduire tout » |
+| `~/.config/kwinrulesrc` | retrait des règles `skiptaskbar` |
+| `~/.local/state/barre-taches-trait-blanc/` | sauvegarde des fichiers d'origine |
+
+### Désinstallation
+
+```bash
+./installer-barre-taches-trait-blanc.sh --uninstall
+```
+
+Les fichiers d'origine sont restaurés et le thème local supprimé.
+
+---
+
 ## Désinstallation complète
 
 ```bash
@@ -546,6 +621,7 @@ Le service, le script et le raccourci KGlobalAccel sont retirés.
 ./installer-firefox-config.sh --uninstall
 ./installer-fond-noir-batterie.sh --uninstall
 ./installer-bluetooth-altgr-semicolon.sh --uninstall
+./installer-barre-taches-trait-blanc.sh --uninstall
 ```
 
 ## Structure du dépôt
@@ -561,6 +637,7 @@ Le service, le script et le raccourci KGlobalAccel sont retirés.
 ├── installer-firefox-config.sh          # configuration Firefox (barre de favoris en icônes seules)
 ├── installer-fond-noir-batterie.sh      # fond noir immédiat sur batterie, restauration au secteur
 ├── installer-bluetooth-altgr-semicolon.sh # AltGr+; allume/éteint le Bluetooth
+├── installer-barre-taches-trait-blanc.sh # barre épurée + trait blanc sous les applis
 ├── config/
 │   ├── powerdevilrc                     # copie de référence
 │   ├── kscreenlockerrc                  # copie de référence
@@ -582,9 +659,17 @@ Le service, le script et le raccourci KGlobalAccel sont retirés.
 │   │   ├── battery-wallpaper.py          # démon D-Bus UPower
 │   │   ├── battery-wallpaper.conf        # réglages (noir / image)
 │   │   └── battery-wallpaper.service     # unité systemd utilisateur
-│   └── bluetooth-shortcut/              # AltGr+; -> Bluetooth (copies de référence)
-│       ├── bluetooth-toggle.py           # démon KGlobalAccel + BlueZ
-│       └── bluetooth-toggle.service      # unité systemd utilisateur
+│   ├── bluetooth-shortcut/              # AltGr+; -> Bluetooth (copies de référence)
+│   │   ├── bluetooth-toggle.py           # démon KGlobalAccel + BlueZ
+│   │   └── bluetooth-toggle.service      # unité systemd utilisateur
+│   └── barre-taches/                     # thème Vapor White Line (copies de référence)
+│       └── theme/
+│           ├── colors                     # palette Vapor
+│           ├── plasmarc
+│           ├── metadata.desktop
+│           └── widgets/
+│               ├── plasmoidheading.svg
+│               └── tasks.svgz             # fond transparent + trait blanc
 └── README.md
 ```
 
