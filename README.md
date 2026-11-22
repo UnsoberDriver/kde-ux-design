@@ -7,6 +7,7 @@ Dix correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE Pl
 |---|---|
 | [`installer-capture-shift-win-s.sh`](#1-capture-décran--shift--win--s-façon-windows) | `Shift + Win + S` capture une région, copie et enregistre — **sans aucune fenêtre** |
 | [`installer-clavier-toujours-allume.sh`](#2-rétroéclairage-du-clavier-toujours-allumé) | Le rétroéclairage du clavier **reste toujours allumé** |
+| [`installer-clavier-retro-eclairage-ac.sh`](#2b-rétroéclairage-clavier-max-sur-secteur-min-sur-batterie) | Rétroéclairage clavier **au max sur secteur**, **au min sur batterie** |
 | [`installer-veille-jamais.sh`](#3-ni-veille-ni-extinction-décran-ni-verrouillage-automatique) | **Jamais** de veille, d'extinction d'écran ni de verrouillage automatique |
 | [`installer-touchpad-zones.sh`](#4-zones-du-pavé-tactile--bord-gauche-volume-bord-droit-luminosité) | **Bord gauche = volume**, **bord droit = luminosité** sur le pavé tactile |
 | [`installer-numlock-toujours-actif.sh`](#5-pavé-numérique-num-lock-toujours-activé-au-démarrage) | Le **pavé numérique (Num Lock)** est **activé** à chaque démarrage de session |
@@ -674,6 +675,7 @@ containment Plasma.
 .
 ├── installer-capture-shift-win-s.sh     # Shift+Win+S silencieux
 ├── installer-clavier-toujours-allume.sh # rétroéclairage toujours allumé
+├── installer-clavier-retro-eclairage-ac.sh # clavier max sur secteur / min sur batterie
 ├── installer-veille-jamais.sh           # ni veille, ni extinction, ni verrouillage
 ├── installer-touchpad-zones.sh          # bords du pavé : volume / luminosité + gestes
 ├── installer-numlock-toujours-actif.sh  # Num Lock activé à chaque démarrage
