@@ -12,6 +12,7 @@ Dix correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE Pl
 | [`installer-numlock-toujours-actif.sh`](#5-pavé-numérique-num-lock-toujours-activé-au-démarrage) | Le **pavé numérique (Num Lock)** est **activé** à chaque démarrage de session |
 | [`installer-icones-monochromes.sh`](#6-icônes-dapplications-en-monochrome-thème-sombre) | Les **icônes des applications** (système, Flatpak, Chromium, OpenCode, Dolphin…) en **monochrome** adapté au thème sombre |
 | [`installer-firefox-config.sh`](#7-configuration-firefox-barre-de-favoris-en-icônes-seules) | **Firefox** (Flatpak) : barre personnelle en **icônes seules** (`userChrome.css`) et intégration Plasma |
+| [`installer-fond-ecran-anime.sh`](#8-fond-décran-animé-wallpaper-engine-for-kde) | **Fond d’écran animé** via Wallpaper Engine for KDE (plugin `catsout`) |
 | [`installer-fond-noir-batterie.sh`](#8-fond-décran-noir-automatique-sur-batterie) | **Fond noir pur** immédiat sur batterie, **dernier fond utilisé** restauré au rebranchement |
 | [`installer-bluetooth-altgr-semicolon.sh`](#9-raccourci-bluetooth) | `AltGr + ;` **allume / éteint le Bluetooth** immédiatement, sous Wayland |
 | [`installer-barre-taches-trait-blanc.sh`](#10-barre-des-tâches-épurée--trait-blanc-sous-les-applis-ouvertes) | Barre épurée (plus de CPU ni de « réduire tout ») et **trait blanc sous les applis ouvertes**, sans changement de fond |
@@ -611,6 +612,44 @@ Fichiers créés / modifiés :
 ```
 
 Les fichiers d'origine sont restaurés et le thème local supprimé.
+
+---
+
+## 8. Fond d’écran animé (Wallpaper Engine for KDE)
+
+### Résultat
+
+- restaure la configuration du **fond d’écran animé** utilisé sur ce poste,
+  via le plugin Plasma **Wallpaper Engine for KDE** (`com.github.catsout.wallpaperEngineKde`).
+
+### Installation
+
+```bash
+chmod +x installer-fond-ecran-anime.sh
+./installer-fond-ecran-anime.sh              # applique / répare
+./installer-fond-ecran-anime.sh --uninstall  # retire la config du plugin
+```
+
+### Comment ça marche
+
+| Fichier | Rôle |
+|---|---|
+| `~/.config/plasma-org.kde.plasma.desktop-appletsrc` | configuration Plasma du fond d’écran (containment bureau) |
+| `config/fond-ecran-anime/wallpaper-engine.json` | copie de référence (plugin, chemin Steam, source/ID Workshop, filtre) |
+
+Le script lit `config/fond-ecran-anime/wallpaper-engine.json` et met à jour la
+section `[Wallpaper][com.github.catsout.wallpaperEngineKde][General]` du
+containment Plasma.
+
+### Prérequis / à savoir
+
+- Nécessite le plugin **Wallpaper Engine for KDE** (`com.github.catsout.wallpaperEngineKde`).
+- Nécessite **Steam / Wallpaper Engine Workshop** avec le fond téléchargé.
+- Les **chemins et l’ID Workshop sont spécifiques à cette machine** (ex. chemin Steam
+  dans `/home/nico/...`). Avant d’appliquer sur une autre machine, édite
+  `config/fond-ecran-anime/wallpaper-engine.json`.
+- Après application, redémarre plasmashell si besoin :
+  `kquitapp6 plasmashell && kstart plasmashell` (ou déconnexion/reconnexion).
 
 ---
 
