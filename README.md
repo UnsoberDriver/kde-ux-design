@@ -428,6 +428,11 @@ Fichiers créés :
 | `~/.config/systemd/user/battery-wallpaper.service` | service utilisateur |
 | `~/.local/state/battery-wallpaper/original.json` | sauvegarde du dernier fond utilisé |
 
+> La configuration animée sauvegardée est également conservée comme copie de
+> référence dans [`config/fond-ecran-anime/wallpaper-engine.json`](config/fond-ecran-anime/wallpaper-engine.json)
+> (plugin `com.github.catsout.wallpaperEngineKde` : source vidéo Wallpaper Engine,
+> FPS, audio coupé, mode d'affichage, chemin de la bibliothèque Steam…).
+
 ### Réglage
 
 Par défaut le fond est noir. Pour utiliser une image fixe à la place, éditer
@@ -662,14 +667,16 @@ Les fichiers d'origine sont restaurés et le thème local supprimé.
 │   ├── bluetooth-shortcut/              # AltGr+; -> Bluetooth (copies de référence)
 │   │   ├── bluetooth-toggle.py           # démon KGlobalAccel + BlueZ
 │   │   └── bluetooth-toggle.service      # unité systemd utilisateur
-│   └── barre-taches/                     # thème Vapor White Line (copies de référence)
-│       └── theme/
-│           ├── colors                     # palette Vapor
-│           ├── plasmarc
-│           ├── metadata.desktop
-│           └── widgets/
-│               ├── plasmoidheading.svg
-│               └── tasks.svgz             # fond transparent + trait blanc
+│   ├── barre-taches/                     # thème Vapor White Line (copies de référence)
+│   │   └── theme/
+│   │       ├── colors                     # palette Vapor
+│   │       ├── plasmarc
+│   │       ├── metadata.desktop
+│   │       └── widgets/
+│   │           ├── plasmoidheading.svg
+│   │           └── tasks.svgz             # fond transparent + trait blanc
+│   └── fond-ecran-anime/                 # fond animé Wallpaper Engine KDE
+│       └── wallpaper-engine.json          # config de référence (source vidéo, FPS, audio…)
 └── README.md
 ```
 
