@@ -122,6 +122,10 @@ def restore_original():
 
 
 def apply_state(on_bat):
+    # mode "pause" : on ne touche pas au fond, le plugin Wallpaper Engine
+    # met lui-même en pause le fond animé (PauseOnBatPower=true).
+    if load_config().get("mode", "black") == "pause":
+        return
     STATE.mkdir(parents=True, exist_ok=True)
     plugin, cfg = get_wallpaper()
     if on_bat:
@@ -176,6 +180,7 @@ def watch():
 
 def status():
     plugin, cfg = get_wallpaper()
+    print("mode        :", load_config().get("mode", "black"))
     print("alimentation :", "batterie" if on_battery_file() else "secteur")
     print("fond actuel  :", plugin, "|", cfg.get("WallpaperSource", cfg.get("Image", cfg.get("Color", ""))))
     print("statique     :", "oui" if is_static(plugin, cfg) else "non")

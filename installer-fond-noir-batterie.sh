@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Fond d'écran noir automatique sur batterie
+#  Fond d'écran animé figé sur batterie
 #  KDE Plasma 6 / Wayland (Bazzite, etc.)
 # =============================================================================
 #
 #  RÉSULTAT
-#    - sur batterie : fond d'écran noir pur (#000000), immédiatement
-#    - sur secteur  : le fond d'écran d'origine est restauré automatiquement
+#    - sur batterie : le fond animé actuel reste affiché et est mis en pause
+#      (PauseOnBatPower=true dans la config du plugin Wallpaper Engine)
+#    - sur secteur  : la lecture reprend normalement
 #
 #  FICHIERS MODIFIÉS (aucun root nécessaire)
 #    ~/.local/bin/battery-wallpaper.py           -> démon de bascule
@@ -105,4 +106,4 @@ else
     err "Le service ne démarre pas : journalctl --user -u battery-wallpaper.service"
 fi
 
-msg "Terminé. Débranche le chargeur : le noir apparaît instantanément."
+msg "Terminé. Débranche le chargeur : le fond animé reste affiché mais se fige."
