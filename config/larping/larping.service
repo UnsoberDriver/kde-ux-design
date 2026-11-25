@@ -1,10 +1,11 @@
 [Unit]
-Description=AltGr+; bascule le Bluetooth
+Description=Discord presence « Larping » (AltGr + :)
 After=graphical-session.target
+PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/bluetooth-toggle.py
+ExecStart=%h/.local/bin/larping --daemon
 Restart=on-failure
 RestartSec=2
 
