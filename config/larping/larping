@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
-"""Bascule l'activité Discord « Larping » avec AltGr + la touche ':'.
+"""Bascule l'activité Discord avec AltGr + ':' / AltGr + '!'.
 
 Sur KDE Wayland, les raccourcis X11 ne sont pas fiables : on lit donc
 directement le périphérique clavier via evdev (aucun paquet supplémentaire).
 
+Profils :
+    AltGr + :  -> LARPING_CLIENT_ID   (défaut : exemple public pypresence)
+    AltGr + !  -> GAME_CLIENT_ID      (défaut : 1575228314140803175)
+
+Appuyer sur le même raccourci coupe l'activité ; appuyer sur l'autre
+remplace l'activité courante par celle de l'autre profil.
+
 Usage :
-    larping --daemon    # démon (utilisé par le service systemd)
-    larping --toggle    # bascule manuellement
-    larping --status    # affiche l'état courant
+    larping --daemon        # démon (utilisé par le service systemd)
+    larping --toggle        # bascule le profil ':'
+    larping --game          # bascule le profil '!'
+    larping --status        # affiche le profil actif
 """
 
 import json
@@ -18,7 +26,6 @@ import socket
 import struct
 import sys
 import threading
-import time
 import uuid
 from pathlib import Path
 
@@ -27,12 +34,34 @@ STATE_DIR = HOME / ".local" / "state" / "larping"
 STATE_FILE = STATE_DIR / "state"
 PID_FILE = STATE_DIR / "daemon.pid"
 
-# Client ID public tiré des exemples pypresence (application « Apple Music »,
-# d'où la note de musique). Mets le tien pour avoir ta propre icône.
-CLIENT_ID = os.environ.get("LARPING_CLIENT_ID", "717091213148160041")
-ACTIVITY_NAME = os.environ.get("LARPING_NAME", "Larping")
-# Icône optionnelle (URL publique) envoyée comme small_image de l'activité.
-ICON_URL = os.environ.get("LARPING_ICON_URL", "")
+EV_KEY = 1
+KEY_DOT = 52       # touche « : » sur AZERTY français (evdev KEY_DOT)
+KEY_SLASH = 53     # touche « ! » sur AZERTY français (evdev KEY_SLASH)
+KEY_RIGHTALT = 100  # AltGr
+
+EVENT_SIZE = struct.calcsize("qqHHI")  # timeval + type + code + value
+
+# Profil 1 : AltGr + ':' — l'appli Larping déjà en place (ID local via override).
+# Profil 2 : AltGr + '!' — l'appli fournie par l'utilisateur.
+PROFILES = {
+    KEY_DOT: {
+        "label": "Larping",
+        "client_id": os.environ.get("LARPING_CLIENT_ID", "717091213148160041"),
+        "name": os.environ.get("LARPING_NAME", "Larping"),
+        "icon": os.environ.get("LARPING_ICON_URL", ""),
+    },
+    KEY_SLASH: {
+        "label": "Jeu",
+        "client_id": os.environ.get("GAME_CLIENT_ID", "1575228314140803175"),
+        "name": os.environ.get("GAME_NAME", "Larping"),
+        "icon": os.environ.get("GAME_ICON_URL", ""),
+    },
+}
+
+
+def log(msg):
+    print(f"[larping] {msg}", flush=True)
+
 
 def find_keyboard_device():
     """Premier périphérique clavier évdev lisible (fallback event2)."""
@@ -57,27 +86,24 @@ def find_keyboard_device():
 # Détection automatique du clavier ; surchargeable via LARPING_KEYBOARD.
 KEYBOARD_DEVICE = os.environ.get("LARPING_KEYBOARD") or find_keyboard_device()
 
-EV_KEY = 1
-KEY_DOT = 52    # touche « : » sur clavier AZERTY français (evdev)
-KEY_RIGHTALT = 100  # AltGr
-
-EVENT_SIZE = struct.calcsize("qqHHI")  # timeval + type + code + value
-
-
-def log(msg):
-    print(f"[larping] {msg}", flush=True)
-
-
 def read_state():
+    """Renvoie le code du profil actif, ou 0. Migre l'ancien état '1'."""
     try:
-        return STATE_FILE.read_text().strip() == "1"
+        raw = STATE_FILE.read_text().strip()
     except OSError:
-        return False
+        return 0
+    if raw == "1":
+        return KEY_DOT
+    try:
+        key = int(raw)
+    except ValueError:
+        return 0
+    return key if key in PROFILES else 0
 
 
-def write_state(value):
+def write_state(key):
     STATE_DIR.mkdir(parents=True, exist_ok=True)
-    STATE_FILE.write_text("1" if value else "0")
+    STATE_FILE.write_text(str(key if key in PROFILES else 0))
 
 
 def find_ipc_socket():
@@ -88,20 +114,17 @@ def find_ipc_socket():
         candidates.append(f"{runtime}/discord-ipc-{i}")
         candidates.append(f"{runtime}/app/com.discordapp.Discord/discord-ipc-{i}")
         candidates.append(f"/run/user/{uid}/app/com.discordapp.Discord/discord-ipc-{i}")
+    seen = set()
     for path in candidates:
-        if path in seen_paths:
+        if path in seen:
             continue
-        seen_paths.add(path)
+        seen.add(path)
         try:
             if os.path.exists(path):
-                socket.socket(socket.AF_UNIX).close()  # juste pour valider l'accès
                 return path
         except OSError:
             pass
     return None
-
-
-seen_paths = set()
 
 
 def send_frame(sock, opcode, payload):
@@ -127,14 +150,15 @@ def read_frame(sock):
 
 
 class Presence(threading.Thread):
-    """Garde une connexion IPC ouverte et applique l'état voulu."""
+    """Garde une connexion IPC et applique le profil voulu."""
 
     def __init__(self):
         super().__init__(daemon=True)
         self.stop_event = threading.Event()
         self.lock = threading.Lock()
         self.want = read_state()
-        self.applied = None
+        self.applied = 0
+        self.connected_client_id = None
 
     def set_want(self, value):
         with self.lock:
@@ -151,7 +175,7 @@ class Presence(threading.Thread):
         try:
             send_frame(sock, 1, {"cmd": cmd, "args": args, "nonce": nonce})
             while True:
-                opcode, payload = read_frame(sock)
+                _opcode, payload = read_frame(sock)
                 if payload.get("nonce") == nonce:
                     data = payload.get("data") or {}
                     if payload.get("evt") == "ERROR" or "code" in data:
@@ -160,72 +184,126 @@ class Presence(threading.Thread):
         finally:
             sock.settimeout(old_timeout)
 
-    def apply(self, sock, enabled):
+    def apply(self, sock, key):
+        profile = PROFILES.get(key)
         activity = None
-        if enabled:
-            activity = {"name": ACTIVITY_NAME, "type": 0}
-            if ICON_URL:
+        if profile:
+            activity = {"name": profile["name"], "type": 0}
+            if profile["icon"]:
                 activity["assets"] = {
-                    "small_image": ICON_URL,
-                    "small_text": ACTIVITY_NAME,
+                    "small_image": profile["icon"],
+                    "small_text": profile["name"],
                 }
         self.request(
             sock,
             "SET_ACTIVITY",
             {"pid": os.getpid(), "activity": activity},
         )
-        self.applied = enabled
-        log("activité " + ("activée" if enabled else "désactivée"))
+        self.applied = key
+        log("activité " + (f"activée : {profile['label']}" if profile else "désactivée"))
 
     def run(self):
-        while not self.stop_event.is_set():
-            sock = None
-            try:
-                path = find_ipc_socket()
-                if not path:
-                    raise ConnectionError("socket IPC Discord introuvable")
-                sock = socket.socket(socket.AF_UNIX)
-                sock.settimeout(3.0)
-                sock.connect(path)
-                send_frame(sock, 0, {"v": 1, "client_id": CLIENT_ID})
-                opcode, payload = read_frame(sock)
-                if opcode == 2 or payload.get("evt") == "ERROR":
-                    raise RuntimeError(str(payload))
-                log(f"connecté à Discord ({payload.get('data', {}).get('user', {}).get('username', '?')})")
-                self.applied = None
+        sock = None
+        try:
+            while not self.stop_event.is_set():
+                want = self.get_want()
+                profile = PROFILES.get(want)
 
-                while not self.stop_event.is_set():
-                    if self.get_want() != self.applied:
-                        self.apply(sock, self.get_want())
-                    sock.settimeout(0.5)
+                # Un changement de client ID impose une nouvelle connexion IPC.
+                if profile and self.connected_client_id != profile["client_id"]:
+                    if sock:
+                        try:
+                            sock.close()
+                        except OSError:
+                            pass
+                    sock = None
+                    self.connected_client_id = None
+                    self.applied = 0
+
+                if sock is None:
                     try:
-                        opcode, payload = read_frame(sock)
-                        if opcode == 2:  # CLOSE
-                            raise ConnectionError("Discord a fermé la connexion")
-                    except socket.timeout:
-                        continue
-            except Exception as exc:
-                if not self.stop_event.is_set():
-                    log(f"IPC: {exc} — nouvelle tentative dans 2 s")
-            finally:
-                if sock:
+                        path = find_ipc_socket()
+                        if not path:
+                            raise ConnectionError("socket IPC Discord introuvable")
+                        client_id = (
+                            profile["client_id"]
+                            if profile
+                            else (self.connected_client_id or next(iter(PROFILES.values()))["client_id"])
+                        )
+                        sock = socket.socket(socket.AF_UNIX)
+                        sock.settimeout(3.0)
+                        sock.connect(path)
+                        send_frame(sock, 0, {"v": 1, "client_id": client_id})
+                        _opcode, payload = read_frame(sock)
+                        if payload.get("evt") == "ERROR":
+                            raise RuntimeError(str(payload))
+                        self.connected_client_id = client_id
+                        self.applied = 0
+                        log(f"connecté à Discord avec {client_id}")
+                    except Exception as exc:
+                        if sock:
+                            try:
+                                sock.close()
+                            except OSError:
+                                pass
+                        sock = None
+                        self.connected_client_id = None
+                        if not self.stop_event.is_set():
+                            log(f"IPC: {exc} — nouvelle tentative dans 2 s")
+                        self.stop_event.wait(2)
+                    continue
+
+                if want != self.applied:
+                    try:
+                        self.apply(sock, want)
+                    except Exception as exc:
+                        log(f"SET_ACTIVITY: {exc} — reconnexion")
+                        try:
+                            sock.close()
+                        except OSError:
+                            pass
+                        sock = None
+                        self.connected_client_id = None
+                        self.applied = 0
+                    continue
+
+                sock.settimeout(0.5)
+                try:
+                    opcode, _payload = read_frame(sock)
+                    if opcode == 2:  # CLOSE
+                        raise ConnectionError("Discord a fermé la connexion")
+                except socket.timeout:
+                    continue
+                except Exception as exc:
+                    log(f"IPC: {exc} — reconnexion")
                     try:
                         sock.close()
                     except OSError:
                         pass
-            self.stop_event.wait(2)
+                    sock = None
+                    self.connected_client_id = None
+                    self.applied = 0
+        finally:
+            if sock:
+                try:
+                    sock.close()
+                except OSError:
+                    pass
 
     def stop(self):
         self.stop_event.set()
 
 
-def toggle(presence=None):
-    new_state = not read_state()
-    write_state(new_state)
+def switch(presence, key):
+    """Active le profil 'key', ou le coupe si c'était déjà le profil actif."""
+    current = read_state()
+    new = 0 if current == key else key
+    write_state(new)
     if presence:
-        presence.set_want(new_state)
-    log(">>> " + ("ON : Larping" if new_state else "OFF"))
-    return new_state
+        presence.set_want(new)
+    label = PROFILES.get(new, {}).get("label", "OFF")
+    log(f">>> {'ON : ' + label if new else 'OFF'}")
+    return new
 
 
 def daemon():
@@ -233,21 +311,28 @@ def daemon():
     presence.start()
 
     def on_sigusr1(_signum, _frame):
-        toggle(presence)
+        switch(presence, KEY_DOT)
+
+    def on_sigusr2(_signum, _frame):
+        switch(presence, KEY_SLASH)
 
     def on_sigterm(_signum, _frame):
-        write_state(False)
-        presence.set_want(False)
+        write_state(0)
+        presence.set_want(0)
         presence.stop()
 
     signal.signal(signal.SIGUSR1, on_sigusr1)
+    signal.signal(signal.SIGUSR2, on_sigusr2)
     signal.signal(signal.SIGTERM, on_sigterm)
     signal.signal(signal.SIGINT, on_sigterm)
 
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     PID_FILE.write_text(str(os.getpid()))
 
-    log(f"démon prêt — AltGr + ':' (clavier {KEYBOARD_DEVICE})")
+    log(
+        f"démon prêt — AltGr + ':' = {PROFILES[KEY_DOT]['client_id']}, "
+        f"AltGr + '!' = {PROFILES[KEY_SLASH]['client_id']} (clavier {KEYBOARD_DEVICE})"
+    )
     try:
         fd = os.open(KEYBOARD_DEVICE, os.O_RDONLY | os.O_NONBLOCK)
     except OSError as exc:
@@ -255,7 +340,8 @@ def daemon():
         fd = None
 
     pressed = set()
-    latched = False
+    latched = set()
+    profile_keys = (KEY_DOT, KEY_SLASH)
     try:
         while not presence.stop_event.is_set():
             if fd is None:
@@ -272,26 +358,25 @@ def daemon():
                 _sec, _usec, ev_type, code, value = struct.unpack(
                     "qqHHI", data[offset : offset + EVENT_SIZE]
                 )
-                if ev_type != EV_KEY or code not in (KEY_RIGHTALT, KEY_DOT):
+                if ev_type != EV_KEY or code not in (KEY_RIGHTALT,) + profile_keys:
                     continue
                 if value:
                     pressed.add(code)
                 else:
                     pressed.discard(code)
-                both = KEY_RIGHTALT in pressed and KEY_DOT in pressed
-                if both and not latched:
-                    latched = True
-                    toggle(presence)
-                elif not both:
-                    latched = False
+                for key in profile_keys:
+                    both = KEY_RIGHTALT in pressed and key in pressed
+                    if both and key not in latched:
+                        latched.add(key)
+                        switch(presence, key)
+                    elif not both:
+                        latched.discard(key)
     finally:
         if fd is not None:
             os.close(fd)
         presence.stop()
         presence.join(timeout=2)
         try:
-            # Ne supprime le fichier que s'il contient encore notre PID :
-            # évite d'effacer celui du service redémarré entre-temps.
             if PID_FILE.read_text().strip() == str(os.getpid()):
                 PID_FILE.unlink()
         except OSError:
@@ -299,20 +384,30 @@ def daemon():
         log("arrêté")
 
 
+def signal_daemon(signum, label):
+    try:
+        pid = int(PID_FILE.read_text().strip())
+        os.kill(pid, signum)
+        print(label, flush=True)
+    except (OSError, ValueError) as exc:
+        print(
+            f"démon non joignable ({exc}) — lance-le avec : systemctl --user start larping.service",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def main():
     args = set(sys.argv[1:])
     if "--daemon" in args:
         daemon()
+    elif "--game" in args:
+        signal_daemon(signal.SIGUSR2, "bascule Jeu demandée")
     elif "--toggle" in args:
-        try:
-            pid = int(PID_FILE.read_text().strip())
-            os.kill(pid, signal.SIGUSR1)
-            print("bascule demandée")
-        except (OSError, ValueError) as exc:
-            print(f"démon non joignable ({exc}) — lance-le avec : systemctl --user start larping.service")
-            sys.exit(1)
+        signal_daemon(signal.SIGUSR1, "bascule Larping demandée")
     elif "--status" in args:
-        print("Larping: " + ("ON" if read_state() else "OFF"))
+        key = read_state()
+        print("Activité : " + (PROFILES[key]["label"] if key else "OFF"))
     else:
         print(__doc__)
 

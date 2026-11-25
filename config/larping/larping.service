@@ -1,5 +1,5 @@
 [Unit]
-Description=Discord presence « Larping » (AltGr + :)
+Description=Activités Discord (AltGr + : / AltGr + !)
 After=graphical-session.target
 PartOf=graphical-session.target
 
