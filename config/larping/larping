@@ -27,10 +27,12 @@ STATE_DIR = HOME / ".local" / "state" / "larping"
 STATE_FILE = STATE_DIR / "state"
 PID_FILE = STATE_DIR / "daemon.pid"
 
-# Client ID public tiré des exemples pypresence. Remplace-le par l'ID de
-# ton propre « application » (discord.com/developers/applications) si tu veux.
+# Client ID public tiré des exemples pypresence (application « Apple Music »,
+# d'où la note de musique). Mets le tien pour avoir ta propre icône.
 CLIENT_ID = os.environ.get("LARPING_CLIENT_ID", "717091213148160041")
 ACTIVITY_NAME = os.environ.get("LARPING_NAME", "Larping")
+# Icône optionnelle (URL publique) envoyée comme small_image de l'activité.
+ICON_URL = os.environ.get("LARPING_ICON_URL", "")
 
 def find_keyboard_device():
     """Premier périphérique clavier évdev lisible (fallback event2)."""
@@ -162,6 +164,11 @@ class Presence(threading.Thread):
         activity = None
         if enabled:
             activity = {"name": ACTIVITY_NAME, "type": 0}
+            if ICON_URL:
+                activity["assets"] = {
+                    "small_image": ICON_URL,
+                    "small_text": ACTIVITY_NAME,
+                }
         self.request(
             sock,
             "SET_ACTIVITY",

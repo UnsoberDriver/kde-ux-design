@@ -645,7 +645,17 @@ L'installateur est idempotent : le relancer répare/actualise l'installation.
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `LARPING_NAME` | `Larping` | texte affiché dans l'activité |
-| `LARPING_CLIENT_ID` | `717091213148160041` | client ID RPC (exemple public ; mets le tien depuis `discord.com/developers/applications` si tu veux) |
+| `LARPING_CLIENT_ID` | `717091213148160041` | client ID RPC (exemple public : l'appli « Apple Music », d'où la note de musique) |
+| `LARPING_ICON_URL` | *(vide)* | URL d'un petit badge (`small_image`) affiché en bas à droite de l'icône |
+
+> L'**icône principale** à gauche de « Larping » est celle de l'application Discord
+> liée au `LARPING_CLIENT_ID`. Pour la remplacer par la tienne : crée une
+> application sur `discord.com/developers/applications`, uploade ton icône, puis
+> passe son ID dans `LARPING_CLIENT_ID` (par exemple dans un drop-in systemd :
+> `~/.config/systemd/user/larping.service.d/override.conf` avec
+> `Environment=LARPING_CLIENT_ID=TON_ID`, puis `systemctl --user daemon-reload &&
+> systemctl --user restart larping.service`). Le badge `LARPING_ICON_URL` reste
+> indépendant et peut être supprimé.
 
 ### Commandes utiles
 
