@@ -11,6 +11,7 @@ Dix correctifs / personnalisations « qualité de vie » pour **Bazzite / KDE Pl
 | [`installer-veille-jamais.sh`](#3-ni-veille-ni-extinction-décran-ni-verrouillage-automatique) | **Jamais** de veille, d'extinction d'écran ni de verrouillage automatique |
 | [`installer-touchpad-zones.sh`](#4-zones-du-pavé-tactile--bord-gauche-volume-bord-droit-luminosité) | **Bord gauche = volume**, **bord droit = luminosité** sur le pavé tactile |
 | [`installer-numlock-toujours-actif.sh`](#5-pavé-numérique-num-lock-toujours-activé-au-démarrage) | Le **pavé numérique (Num Lock)** est **activé** à chaque démarrage de session |
+| [`config/kxkbrc`](#5b-clavier-français-au-démarrage) | Le clavier démarre en **azerty (fr)**, l'US reste disponible |
 | [`installer-icones-monochromes.sh`](#6-icônes-dapplications-en-monochrome-thème-sombre) | Les **icônes des applications** (système, Flatpak, Chromium, OpenCode, Dolphin…) en **monochrome** adapté au thème sombre |
 | [`installer-firefox-config.sh`](#7-configuration-firefox-barre-de-favoris-en-icônes-seules) | **Firefox** (Flatpak) : barre personnelle en **icônes seules** (`userChrome.css`) et intégration Plasma |
 | [`installer-fond-ecran-anime.sh`](#8-fond-décran-animé-wallpaper-engine-for-kde) | **Fond d’écran animé** via Wallpaper Engine for KDE (plugin `catsout`) |
@@ -236,7 +237,7 @@ au pavé tactile et en écriture à la luminosité.
 | Fichier | Rôle |
 |---|---|
 | `~/.local/bin/touchpad-zones.py` | lit le pavé via `python-evdev`, détecte les bandes de bord et les gestes |
-| `~/.local/bin/touchpad-3tap-action.js` | script KWin : 3 doigts → ferme la fenêtre, ou menu extinction si bureau |
+| `~/.local/bin/touchpad-3tap-action.js` | script KWin : 3 doigts → ferme la fenêtre, ou **extinction directe** sur le bureau |
 | `~/.local/bin/touchpad-osd.py` | overlay Qt en bas au milieu, piloté par un FIFO |
 | `~/.config/systemd/user/touchpad-zones.service` | démon (redémarrage automatique) |
 | `~/.config/systemd/user/touchpad-osd.service` | overlay |
@@ -306,6 +307,23 @@ Une copie de référence de la configuration appliquée est conservée dans
 
 Le réglage est pris en compte au prochain démarrage de session
 (*Paramètres système → Clavier → « Verrouillage numérique au démarrage de Plasma »*).
+
+## 5b. Clavier français au démarrage
+
+### Résultat
+
+- au lancement de la session, le premier layout est **Français (azerty)** ;
+- l'anglais (US) reste disponible via le raccourci de changement de layout ;
+- l'icône de layout reste retirée de la barre des tâches.
+
+### Comment ça marche
+
+`~/.config/kxkbrc` contient `LayoutList=fr,us` (noms :
+`Français,Anglais (US)`). La copie de référence est conservée dans
+`config/kxkbrc`.
+
+Le réglage est lu par KWin au prochain démarrage de session : pas besoin de
+redémarrer la session immédiatement.
 
 ---
 
@@ -688,6 +706,7 @@ containment Plasma.
 │   ├── powerdevilrc                     # copie de référence
 │   ├── kscreenlockerrc                  # copie de référence
 │   ├── kcminputrc                       # copie de référence
+│   ├── kxkbrc                           # clavier français au démarrage (fr,us)
 │   ├── firefox/                         # configuration Firefox de référence
 │   │   ├── user.js
 │   │   ├── chrome/
@@ -696,7 +715,7 @@ containment Plasma.
 │   │   └── org.mozilla.firefox.desktop
 │   ├── touchpad-zones/                  # copies de référence (zones/gestes pavé)
 │   │   ├── touchpad-zones.py            # démon gestes + zones
-│   │   ├── touchpad-3tap-action.js       # 3 doigts : fermer app / menu extinction (bureau)
+│   │   ├── touchpad-3tap-action.js       # 3 doigts : fermer app / extinction directe (bureau)
 │   │   ├── touchpad-osd.py              # OSD volume/luminosité
 │   │   ├── touchpad-zones.service
 │   │   └── touchpad-osd.service

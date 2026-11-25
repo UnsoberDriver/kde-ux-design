@@ -1,0 +1,5 @@
+[Layout]
+DisplayNames=Français,Anglais (US)
+LayoutList=fr,us
+Use=true
+VariantList=,

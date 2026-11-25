@@ -39,13 +39,13 @@ VERTICAL_RATIO_2F = 1.2  # 2 doigts : idem (souple)
 NOISE_GATE = 8  # ignore les micro-mouvements par frame
 DEBUG_INTERVAL = 0.2  # delai mini entre 2 lignes de log en mode debug
 
-# taps multi-doigts : 3 doigts -> fermer app / menu extinction (bureau), 4 doigts -> Entree
+# taps multi-doigts : 3 doigts -> fermer app / extinction directe (bureau), 4 doigts -> Entree
 TAP_ACTIONS = {3: "close", 4: "enter"}
 TAP_MAX_N = max(TAP_ACTIONS)
 TAP_SIMULT_S = 0.12  # ecart maxi de pose entre les doigts (simultaneite)
 TAP_MAX_S = 0.35  # duree maxi du tap (pose -> relache complet)
 TAP_MAX_MOVE = 150  # mouvement maxi du centroide pendant le tap (unites)
-TAP_COOLDOWN = 1.0  # delai mini entre 2 actions 3 doigts
+TAP_COOLDOWN = 2.0  # delai mini entre 2 taps (evite les doubles declenchements)
 
 ABS_MT_SLOT = ecodes.ABS_MT_SLOT
 ABS_MT_TRACKING_ID = ecodes.ABS_MT_TRACKING_ID
@@ -96,7 +96,7 @@ def find_touchpad():
 
 def do_3finger_action():
     """Action contextuelle 3 doigts via script KWin :
-    bureau -> menu extinction, application -> fermer la fenêtre."""
+    bureau -> extinction directe, application -> fermer la fenêtre."""
     script = os.path.expanduser("~/.local/bin/touchpad-3tap-action.js")
     try:
         subprocess.run(["busctl", "--user", "call", "org.kde.KWin", "/Scripting",
@@ -113,7 +113,7 @@ def do_3finger_action():
             subprocess.run(["busctl", "--user", "call", "org.kde.KWin",
                             f"/Scripting/Script{sid}", "org.kde.kwin.Script", "run"],
                            check=False, capture_output=True, timeout=2)
-            print("tap 3 doigts -> action contextuelle (bureau=menu extinction, app=fermer)",
+            print("tap 3 doigts -> action contextuelle (bureau=extinction, app=fermer)",
                   flush=True)
             return True
         print(f"action 3 doigts: chargement du script KWin impossible ({out or r.stderr.strip()})",
@@ -270,7 +270,7 @@ def monitor(dev, ui):
                        if s.get("active") and "x" in s and "y" in s]
             n = len(fingers)
             now = time.monotonic()
-            # --- taps multi-doigts (3=fermer/menu extinction, 4=Entree) ---
+            # --- taps multi-doigts (3=fermer/extinction directe, 4=Entree) ---
             if n in TAP_ACTIONS and tap is None and now - last_tap_fire >= TAP_COOLDOWN:
                 if n == 3:
                     # les 3 doigts doivent atterrir en meme temps
@@ -396,7 +396,7 @@ def main():
         print(f"surveillance de {dev.name} ({dev.path}), "
               f"gauche 1 doigt volume x<={LEFT_X_MAX_1F} (pose initiale), "
               f"droite 1 doigt lum x>={RIGHT_X_MIN_1F} (pose initiale), "
-              f"tap 3 doigts=fermer app / menu extinction (bureau), tap 4 doigts=Entree",
+              f"tap 3 doigts=fermer app / extinction directe (bureau), tap 4 doigts=Entree",
               flush=True)
         try:
             monitor(dev, ui)
