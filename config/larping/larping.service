@@ -1,5 +1,5 @@
 [Unit]
-Description=Activités Discord (AltGr + : / ! ; Alt + a / b / c / d / e)
+Description=Activités Discord (AltGr + : / ! ; Alt + a / b / c / d / e / f)
 After=graphical-session.target
 PartOf=graphical-session.target
 

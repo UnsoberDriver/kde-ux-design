@@ -17,7 +17,7 @@ Une douzaine de correctifs / personnalisations « qualité de vie » pour **Bazz
 | [`installer-fond-ecran-anime.sh`](#10-fond-décran-animé-wallpaper-engine-for-kde) | **Fond d’écran animé** via Wallpaper Engine for KDE (plugin `catsout`) |
 | [`installer-fond-noir-batterie.sh`](#8-fond-décran-noir-automatique-sur-batterie) | **Fond noir pur** immédiat sur batterie, **dernier fond utilisé** restauré au rebranchement |
 | [`installer-barre-taches-trait-blanc.sh`](#9-barre-des-tâches-épurée--trait-blanc-sous-les-applis-ouvertes) | Barre épurée (plus de CPU ni de « réduire tout ») et **trait blanc sous les applis ouvertes**, sans changement de fond |
-| [`installer-larping-discord.sh`](#11-activit-discord-larping) | `AltGr + :`, `!` et `Alt + a`, `b`, `c`, `d`, `e` **active / coupe sept activités Discord** |
+| [`installer-larping-discord.sh`](#11-activit-discord-larping) | `AltGr + :`, `!` et `Alt + a`, `b`, `c`, `d`, `e`, `f` **active / coupe huit activités Discord** |
 
 Tout s'installe **au niveau utilisateur** ; seul l'accès au pavé tactile et à la
 luminosité (deux règles udev) demande `root`, une fois.
@@ -625,7 +625,9 @@ containment Plasma.
   **« En train de jouer à Doing things »** avec `GAME5_CLIENT_ID`.
 - `Alt + e` (**Alt gauche**, touche `e`, `KEY_E` evdev) active
   **« En train de jouer à God of War »** avec `GAME6_CLIENT_ID`.
-  `AltGr + a` / `b` / `c` / `d` / `e` ne déclenchent rien.
+- `Alt + f` (**Alt gauche**, touche `f`, `KEY_F` evdev) active
+  **« En train de jouer à Watching Peak »** avec `GAME7_CLIENT_ID`.
+  `AltGr + a` / `b` / `c` / `d` / `e` / `f` ne déclenchent rien.
 - Un second appui sur **la même** touche coupe l'activité ; appuyer sur
   **une autre** touche remplace directement l'activité courante (une seule
   activité Discord à la fois).
@@ -658,7 +660,7 @@ L'installateur est idempotent : le relancer répare/actualise l'installation.
    refait avec le bon `client_id`, sinon Discord garde l'icône du profil
    précédent ;
 4. mémorise l'état (`52` = `:`, `53` = `!`, `16` = `a` AZERTY, `48` = `b`, `46` = `c`,
-   `32` = `d`, `18` = `e`, `0` = OFF) dans
+   `32` = `d`, `18` = `e`, `33` = `f`, `0` = OFF) dans
    `~/.local/state/larping/state` pour le restaurer au prochain démarrage
    de la session (les anciens états `1` sont migrés automatiquement).
 
@@ -687,19 +689,23 @@ L'installateur est idempotent : le relancer répare/actualise l'installation.
 | `GAME6_CLIENT_ID` | `1575419915018576024` | client ID du profil `Alt + e` (« God of War ») |
 | `GAME6_NAME` | `God of War` | texte affiché pour `Alt + e` |
 | `GAME6_ICON_URL` | *(vide)* | badge optionnel (`small_image`) du profil `e` |
+| `GAME7_CLIENT_ID` | `1575422708114522152` | client ID du profil `Alt + f` (« Watching Peak ») |
+| `GAME7_NAME` | `Watching Peak` | texte affiché pour `Alt + f` |
+| `GAME7_ICON_URL` | *(vide)* | badge optionnel (`small_image`) du profil `f` |
 | `LARPING_KEYBOARD` | *(auto)* | force le périphérique evdev à lire |
 
 > L'**icône principale** à gauche de « Larping » est celle de l'application Discord
 > liée au `client_id` du profil. Pour la remplacer par la tienne : crée une
 > application sur `discord.com/developers/applications`, uploade ton icône, puis
 > passe son ID dans `LARPING_CLIENT_ID`, `GAME_CLIENT_ID`, `GAME2_CLIENT_ID`,
-> `GAME3_CLIENT_ID`, `GAME4_CLIENT_ID`, `GAME5_CLIENT_ID` ou `GAME6_CLIENT_ID`
+> `GAME3_CLIENT_ID`, `GAME4_CLIENT_ID`, `GAME5_CLIENT_ID`, `GAME6_CLIENT_ID`
+> ou `GAME7_CLIENT_ID`
 > (par exemple dans un drop-in systemd
 > `~/.config/systemd/user/larping.service.d/override.conf` :
 > `Environment=LARPING_CLIENT_ID=TON_ID`, `Environment=GAME_CLIENT_ID=...`,
 > `Environment=GAME2_CLIENT_ID=...`, `Environment=GAME3_CLIENT_ID=...`,
 > `Environment=GAME4_CLIENT_ID=...`, `Environment=GAME5_CLIENT_ID=...`,
-> `Environment=GAME6_CLIENT_ID=...`,
+> `Environment=GAME6_CLIENT_ID=...`, `Environment=GAME7_CLIENT_ID=...`,
 > puis `systemctl --user daemon-reload && systemctl --user restart larping.service`).
 > `large_image`/`small_image` ne remplacent **pas** l'icône de la liste : elles
 > n'ajoutent qu'un badge sur la carte détaillée.
@@ -707,7 +713,7 @@ L'installateur est idempotent : le relancer répare/actualise l'installation.
 ### Commandes utiles
 
 ```bash
-~/.local/bin/larping --status   # Larping / Jeu / Uncovering / Fih / In disbelief / Doing / God of War / OFF
+~/.local/bin/larping --status   # Larping / Jeu / Uncovering / Fih / In disbelief / Doing / God of War / Watching Peak / OFF
 ~/.local/bin/larping --toggle   # équivalent AltGr + :
 ~/.local/bin/larping --game     # équivalent AltGr + !
 ~/.local/bin/larping --game2    # équivalent Alt + a
@@ -715,6 +721,7 @@ L'installateur est idempotent : le relancer répare/actualise l'installation.
 ~/.local/bin/larping --game4    # équivalent Alt + c
 ~/.local/bin/larping --game5    # équivalent Alt + d
 ~/.local/bin/larping --game6    # équivalent Alt + e
+~/.local/bin/larping --game7    # équivalent Alt + f
 systemctl --user status larping.service
 journalctl --user -u larping.service -f
 ```
@@ -756,7 +763,7 @@ journalctl --user -u larping.service -f
 ├── installer-firefox-config.sh          # configuration Firefox (barre de favoris en icônes seules)
 ├── installer-fond-noir-batterie.sh      # fond noir immédiat sur batterie, restauration au secteur
 ├── installer-barre-taches-trait-blanc.sh # barre épurée + trait blanc sous les applis
-├── installer-larping-discord.sh  # AltGr+: / ! et Alt+a / b / c / d / e : sept activités Discord
+├── installer-larping-discord.sh  # AltGr+: / ! et Alt+a / b / c / d / e / f : huit activités Discord
 ├── config/
 │   ├── powerdevilrc                     # copie de référence
 │   ├── kscreenlockerrc                  # copie de référence
@@ -779,7 +786,7 @@ journalctl --user -u larping.service -f
 │   │   ├── battery-wallpaper.py          # démon D-Bus UPower
 │   │   ├── battery-wallpaper.conf        # réglages (noir / image)
 │   │   └── battery-wallpaper.service     # unité systemd utilisateur
-│   ├── larping/                         # AltGr+: / ! ; Alt+a/b/c/d/e -> Discord (référence)
+│   ├── larping/                         # AltGr+: / ! ; Alt+a/b/c/d/e/f -> Discord (référence)
 │   │   ├── larping                       # démon evdev + IPC Discord
 │   │   └── larping.service               # unité systemd utilisateur
 │   ├── barre-taches/                     # thème Vapor White Line (copies de référence)
