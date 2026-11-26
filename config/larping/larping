@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bascule l'activité Discord avec AltGr + ':' / '!' et Alt + 'a' / 'b' / 'c' / 'd'.
+"""Bascule l'activité Discord avec AltGr + ':' / '!' et Alt + a / b / c / d / e.
 
 Sur KDE Wayland, les raccourcis X11 ne sont pas fiables : on lit donc
 directement le périphérique clavier via evdev (aucun paquet supplémentaire).
@@ -11,6 +11,7 @@ Profils :
     Alt + b    -> GAME3_CLIENT_ID     (défaut : 1575412315820392458)
     Alt + c    -> GAME4_CLIENT_ID     (défaut : 1575414626802212874)
     Alt + d    -> GAME5_CLIENT_ID     (défaut : 1575418107323744317)
+    Alt + e    -> GAME6_CLIENT_ID     (défaut : 1575419915018576024)
 
 Appuyer sur le même raccourci coupe l'activité ; appuyer sur un autre
 remplace l'activité courante par celle de l'autre profil.
@@ -23,6 +24,7 @@ Usage :
     larping --game3         # bascule le profil 'b'
     larping --game4         # bascule le profil 'c'
     larping --game5         # bascule le profil 'd'
+    larping --game6         # bascule le profil 'e'
     larping --status        # affiche le profil actif
 """
 
@@ -49,12 +51,13 @@ KEY_A = 16         # touche « a » en AZERTY (code physique KEY_Q des evdev)
 KEY_B = 48         # touche « b » (evdev KEY_B)
 KEY_C = 46         # touche « c » (evdev KEY_C)
 KEY_D = 32         # touche « d » (evdev KEY_D)
+KEY_E = 18         # touche « e » (evdev KEY_E)
 KEY_LEFTALT = 56   # Alt gauche
 KEY_RIGHTALT = 100  # AltGr
 
 EVENT_SIZE = struct.calcsize("qqHHI")  # timeval + type + code + value
 
-# Chaque profil a son propre modificateur : AltGr pour ':'/'!', Alt gauche pour a/b/c/d.
+# Chaque profil a son propre modificateur : AltGr pour ':'/'!', Alt gauche pour a/b/c/d/e.
 MODIFIER_FOR = {
     KEY_DOT: KEY_RIGHTALT,
     KEY_SLASH: KEY_RIGHTALT,
@@ -62,6 +65,7 @@ MODIFIER_FOR = {
     KEY_B: KEY_LEFTALT,
     KEY_C: KEY_LEFTALT,
     KEY_D: KEY_LEFTALT,
+    KEY_E: KEY_LEFTALT,
 }
 
 # Profil 1 : AltGr + ':' — l'appli Larping déjà en place (ID local via override).
@@ -70,6 +74,7 @@ MODIFIER_FOR = {
 # Profil 4 : Alt + 'b' (Alt gauche) — le troisième jeu fourni par l'utilisateur.
 # Profil 5 : Alt + 'c' (Alt gauche) — le quatrième jeu fourni par l'utilisateur.
 # Profil 6 : Alt + 'd' (Alt gauche) — le cinquième jeu fourni par l'utilisateur.
+# Profil 7 : Alt + 'e' (Alt gauche) — le sixième jeu fourni par l'utilisateur.
 PROFILES = {
     KEY_DOT: {
         "label": "Larping",
@@ -106,6 +111,12 @@ PROFILES = {
         "client_id": os.environ.get("GAME5_CLIENT_ID", "1575418107323744317"),
         "name": os.environ.get("GAME5_NAME", "Doing things"),
         "icon": os.environ.get("GAME5_ICON_URL", ""),
+    },
+    KEY_E: {
+        "label": "God of War",
+        "client_id": os.environ.get("GAME6_CLIENT_ID", "1575419915018576024"),
+        "name": os.environ.get("GAME6_NAME", "God of War"),
+        "icon": os.environ.get("GAME6_ICON_URL", ""),
     },
 }
 PROFILE_KEYS = tuple(PROFILES)
@@ -380,6 +391,9 @@ def daemon():
     def on_sigpwr(_signum, _frame):
         switch(presence, KEY_D)
 
+    def on_sigxcpu(_signum, _frame):
+        switch(presence, KEY_E)
+
     def on_sigterm(_signum, _frame):
         write_state(0)
         presence.set_want(0)
@@ -391,6 +405,7 @@ def daemon():
     signal.signal(signal.SIGWINCH, on_sigwinch)
     signal.signal(signal.SIGURG, on_sigurg)
     signal.signal(signal.SIGPWR, on_sigpwr)
+    signal.signal(signal.SIGXCPU, on_sigxcpu)
     signal.signal(signal.SIGTERM, on_sigterm)
     signal.signal(signal.SIGINT, on_sigterm)
 
@@ -403,7 +418,8 @@ def daemon():
         f"Alt + 'a' = {PROFILES[KEY_A]['client_id']}, "
         f"Alt + 'b' = {PROFILES[KEY_B]['client_id']}, "
         f"Alt + 'c' = {PROFILES[KEY_C]['client_id']}, "
-        f"Alt + 'd' = {PROFILES[KEY_D]['client_id']} (clavier {KEYBOARD_DEVICE})"
+        f"Alt + 'd' = {PROFILES[KEY_D]['client_id']}, "
+        f"Alt + 'e' = {PROFILES[KEY_E]['client_id']} (clavier {KEYBOARD_DEVICE})"
     )
     try:
         fd = os.open(KEYBOARD_DEVICE, os.O_RDONLY | os.O_NONBLOCK)
@@ -483,6 +499,8 @@ def main():
         signal_daemon(signal.SIGURG, "bascule In disbelief demandée")
     elif "--game5" in args:
         signal_daemon(signal.SIGPWR, "bascule Doing things demandée")
+    elif "--game6" in args:
+        signal_daemon(signal.SIGXCPU, "bascule God of War demandée")
     elif "--toggle" in args:
         signal_daemon(signal.SIGUSR1, "bascule Larping demandée")
     elif "--status" in args:
