@@ -614,7 +614,8 @@ containment Plasma.
 - `AltGr + !` (touche `!` azerty, `KEY_SLASH` evdev) active
   **« En train de jouer à Larping »** avec `GAME_CLIENT_ID`
   (libellé interne « Jeu »).
-- `Alt + a` (**Alt gauche**, touche `a`, `KEY_A` evdev) active
+- `Alt + a` (**Alt gauche**, touche `a` AZERTY = code evdev **16** / `KEY_Q`
+  physique ; le `KEY_A` evdev 30 correspond chez toi à la touche `z`) active
   **« En train de jouer à Uncovering things »** avec `GAME2_CLIENT_ID`.
 - `Alt + b` (**Alt gauche**, touche `b`, `KEY_B` evdev) active
   **« En train de jouer à Fih »** avec `GAME3_CLIENT_ID`.
@@ -654,7 +655,7 @@ L'installateur est idempotent : le relancer répare/actualise l'installation.
 3. **reconnecte** l'IPC quand on change de profil : le handshake doit être
    refait avec le bon `client_id`, sinon Discord garde l'icône du profil
    précédent ;
-4. mémorise l'état (`52` = `:`, `53` = `!`, `30` = `a`, `48` = `b`, `46` = `c`,
+4. mémorise l'état (`52` = `:`, `53` = `!`, `16` = `a` AZERTY, `48` = `b`, `46` = `c`,
    `32` = `d`, `0` = OFF) dans
    `~/.local/state/larping/state` pour le restaurer au prochain démarrage
    de la session (les anciens états `1` sont migrés automatiquement).
