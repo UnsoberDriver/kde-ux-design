@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bascule l'activité Discord avec AltGr + ':' / '!' / 'a'.
+"""Bascule l'activité Discord avec AltGr + ':' / '!' et Alt + 'a' / 'b'.
 
 Sur KDE Wayland, les raccourcis X11 ne sont pas fiables : on lit donc
 directement le périphérique clavier via evdev (aucun paquet supplémentaire).
@@ -7,7 +7,8 @@ directement le périphérique clavier via evdev (aucun paquet supplémentaire).
 Profils :
     AltGr + :  -> LARPING_CLIENT_ID   (défaut : exemple public pypresence)
     AltGr + !  -> GAME_CLIENT_ID      (défaut : 1575228314140803175)
-    AltGr + a  -> GAME2_CLIENT_ID     (défaut : 1575411671898267740)
+    Alt + a    -> GAME2_CLIENT_ID     (défaut : 1575411671898267740)
+    Alt + b    -> GAME3_CLIENT_ID     (défaut : 1575412315820392458)
 
 Appuyer sur le même raccourci coupe l'activité ; appuyer sur un autre
 remplace l'activité courante par celle de l'autre profil.
@@ -17,6 +18,7 @@ Usage :
     larping --toggle        # bascule le profil ':'
     larping --game          # bascule le profil '!'
     larping --game2         # bascule le profil 'a'
+    larping --game3         # bascule le profil 'b'
     larping --status        # affiche le profil actif
 """
 
@@ -40,13 +42,24 @@ EV_KEY = 1
 KEY_DOT = 52       # touche « : » sur AZERTY français (evdev KEY_DOT)
 KEY_SLASH = 53     # touche « ! » sur AZERTY français (evdev KEY_SLASH)
 KEY_A = 30         # touche « a » (evdev KEY_A)
+KEY_B = 48         # touche « b » (evdev KEY_B)
+KEY_LEFTALT = 56   # Alt gauche
 KEY_RIGHTALT = 100  # AltGr
 
 EVENT_SIZE = struct.calcsize("qqHHI")  # timeval + type + code + value
 
+# Chaque profil a son propre modificateur : AltGr pour ':'/'!', Alt gauche pour 'a'/'b'.
+MODIFIER_FOR = {
+    KEY_DOT: KEY_RIGHTALT,
+    KEY_SLASH: KEY_RIGHTALT,
+    KEY_A: KEY_LEFTALT,
+    KEY_B: KEY_LEFTALT,
+}
+
 # Profil 1 : AltGr + ':' — l'appli Larping déjà en place (ID local via override).
 # Profil 2 : AltGr + '!' — le premier jeu fourni par l'utilisateur.
-# Profil 3 : AltGr + 'a' — le second jeu fourni par l'utilisateur.
+# Profil 3 : Alt + 'a' (Alt gauche) — le second jeu fourni par l'utilisateur.
+# Profil 4 : Alt + 'b' (Alt gauche) — le troisième jeu fourni par l'utilisateur.
 PROFILES = {
     KEY_DOT: {
         "label": "Larping",
@@ -65,6 +78,12 @@ PROFILES = {
         "client_id": os.environ.get("GAME2_CLIENT_ID", "1575411671898267740"),
         "name": os.environ.get("GAME2_NAME", "Uncovering things"),
         "icon": os.environ.get("GAME2_ICON_URL", ""),
+    },
+    KEY_B: {
+        "label": "Fih",
+        "client_id": os.environ.get("GAME3_CLIENT_ID", "1575412315820392458"),
+        "name": os.environ.get("GAME3_NAME", "Fih"),
+        "icon": os.environ.get("GAME3_ICON_URL", ""),
     },
 }
 PROFILE_KEYS = tuple(PROFILES)
@@ -330,6 +349,9 @@ def daemon():
     def on_sighup(_signum, _frame):
         switch(presence, KEY_A)
 
+    def on_sigwinch(_signum, _frame):
+        switch(presence, KEY_B)
+
     def on_sigterm(_signum, _frame):
         write_state(0)
         presence.set_want(0)
@@ -338,6 +360,7 @@ def daemon():
     signal.signal(signal.SIGUSR1, on_sigusr1)
     signal.signal(signal.SIGUSR2, on_sigusr2)
     signal.signal(signal.SIGHUP, on_sighup)
+    signal.signal(signal.SIGWINCH, on_sigwinch)
     signal.signal(signal.SIGTERM, on_sigterm)
     signal.signal(signal.SIGINT, on_sigterm)
 
@@ -347,7 +370,8 @@ def daemon():
     log(
         f"démon prêt — AltGr + ':' = {PROFILES[KEY_DOT]['client_id']}, "
         f"AltGr + '!' = {PROFILES[KEY_SLASH]['client_id']}, "
-        f"AltGr + 'a' = {PROFILES[KEY_A]['client_id']} (clavier {KEYBOARD_DEVICE})"
+        f"Alt + 'a' = {PROFILES[KEY_A]['client_id']}, "
+        f"Alt + 'b' = {PROFILES[KEY_B]['client_id']} (clavier {KEYBOARD_DEVICE})"
     )
     try:
         fd = os.open(KEYBOARD_DEVICE, os.O_RDONLY | os.O_NONBLOCK)
@@ -374,14 +398,14 @@ def daemon():
                 _sec, _usec, ev_type, code, value = struct.unpack(
                     "qqHHI", data[offset : offset + EVENT_SIZE]
                 )
-                if ev_type != EV_KEY or code not in (KEY_RIGHTALT,) + profile_keys:
+                if ev_type != EV_KEY or code not in (KEY_LEFTALT, KEY_RIGHTALT) + profile_keys:
                     continue
                 if value:
                     pressed.add(code)
                 else:
                     pressed.discard(code)
                 for key in profile_keys:
-                    both = KEY_RIGHTALT in pressed and key in pressed
+                    both = MODIFIER_FOR[key] in pressed and key in pressed
                     if both and key not in latched:
                         latched.add(key)
                         switch(presence, key)
@@ -421,6 +445,8 @@ def main():
         signal_daemon(signal.SIGUSR2, "bascule Jeu demandée")
     elif "--game2" in args:
         signal_daemon(signal.SIGHUP, "bascule Uncovering things demandée")
+    elif "--game3" in args:
+        signal_daemon(signal.SIGWINCH, "bascule Fih demandée")
     elif "--toggle" in args:
         signal_daemon(signal.SIGUSR1, "bascule Larping demandée")
     elif "--status" in args:
