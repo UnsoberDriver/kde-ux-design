@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  AltGr + : / AltGr + ! basculent deux activités Discord
+#  AltGr + : / ! / a basculent trois activités Discord
 #  KDE Plasma 6 / Wayland (Bazzite, etc.) — aucun root nécessaire
 # =============================================================================
 #
@@ -9,6 +9,8 @@
 #    « Larping » avec LARPING_CLIENT_ID.
 #    AltGr + ! (touche « ! » du clavier azerty) active / désactive l'activité
 #    « Larping » avec GAME_CLIENT_ID (un seul jeu affiché à la fois).
+#    AltGr + a (touche « a ») active / désactive « Uncovering things » avec
+#    GAME2_CLIENT_ID.
 #
 #  POURQUOI UN DÉMON EVDEV ET PAS UN RACCOURCI KDE
 #    Sous Wayland, KGlobalAccel ne peut pas écouter AltGr + : de façon fiable
@@ -88,13 +90,14 @@ journalctl --user -u larping.service -n 3 --no-pager || true
 
 cat <<'EOF'
 
-  AltGr + :  ->  ON  (« En train de jouer à Larping » / profil LARPING_CLIENT_ID)
-  AltGr + !  ->  ON  (« En train de jouer à Larping » / profil GAME_CLIENT_ID)
+  AltGr + :  ->  ON  (« En train de jouer à Larping » / LARPING_CLIENT_ID)
+  AltGr + !  ->  ON  (« En train de jouer à Larping » / GAME_CLIENT_ID)
+  AltGr + a  ->  ON  (« En train de jouer à Uncovering things » / GAME2_CLIENT_ID)
   Réappui sur la même touche  ->  OFF
-  L'autre touche remplace directement l'activité.
+  Une autre touche remplace directement l'activité.
 
   État actuel : ~/.local/bin/larping --status
-  Bascules manuelles : ~/.local/bin/larping --toggle | --game
+  Bascules manuelles : ~/.local/bin/larping --toggle | --game | --game2
   Journal : journalctl --user -u larping.service -f
 EOF
 

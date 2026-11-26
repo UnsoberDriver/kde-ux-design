@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bascule l'activité Discord avec AltGr + ':' / AltGr + '!'.
+"""Bascule l'activité Discord avec AltGr + ':' / '!' / 'a'.
 
 Sur KDE Wayland, les raccourcis X11 ne sont pas fiables : on lit donc
 directement le périphérique clavier via evdev (aucun paquet supplémentaire).
@@ -7,14 +7,16 @@ directement le périphérique clavier via evdev (aucun paquet supplémentaire).
 Profils :
     AltGr + :  -> LARPING_CLIENT_ID   (défaut : exemple public pypresence)
     AltGr + !  -> GAME_CLIENT_ID      (défaut : 1575228314140803175)
+    AltGr + a  -> GAME2_CLIENT_ID     (défaut : 1575411671898267740)
 
-Appuyer sur le même raccourci coupe l'activité ; appuyer sur l'autre
+Appuyer sur le même raccourci coupe l'activité ; appuyer sur un autre
 remplace l'activité courante par celle de l'autre profil.
 
 Usage :
     larping --daemon        # démon (utilisé par le service systemd)
     larping --toggle        # bascule le profil ':'
     larping --game          # bascule le profil '!'
+    larping --game2         # bascule le profil 'a'
     larping --status        # affiche le profil actif
 """
 
@@ -37,12 +39,14 @@ PID_FILE = STATE_DIR / "daemon.pid"
 EV_KEY = 1
 KEY_DOT = 52       # touche « : » sur AZERTY français (evdev KEY_DOT)
 KEY_SLASH = 53     # touche « ! » sur AZERTY français (evdev KEY_SLASH)
+KEY_A = 30         # touche « a » (evdev KEY_A)
 KEY_RIGHTALT = 100  # AltGr
 
 EVENT_SIZE = struct.calcsize("qqHHI")  # timeval + type + code + value
 
 # Profil 1 : AltGr + ':' — l'appli Larping déjà en place (ID local via override).
-# Profil 2 : AltGr + '!' — l'appli fournie par l'utilisateur.
+# Profil 2 : AltGr + '!' — le premier jeu fourni par l'utilisateur.
+# Profil 3 : AltGr + 'a' — le second jeu fourni par l'utilisateur.
 PROFILES = {
     KEY_DOT: {
         "label": "Larping",
@@ -56,7 +60,14 @@ PROFILES = {
         "name": os.environ.get("GAME_NAME", "Larping"),
         "icon": os.environ.get("GAME_ICON_URL", ""),
     },
+    KEY_A: {
+        "label": "Uncovering things",
+        "client_id": os.environ.get("GAME2_CLIENT_ID", "1575411671898267740"),
+        "name": os.environ.get("GAME2_NAME", "Uncovering things"),
+        "icon": os.environ.get("GAME2_ICON_URL", ""),
+    },
 }
+PROFILE_KEYS = tuple(PROFILES)
 
 
 def log(msg):
@@ -316,6 +327,9 @@ def daemon():
     def on_sigusr2(_signum, _frame):
         switch(presence, KEY_SLASH)
 
+    def on_sighup(_signum, _frame):
+        switch(presence, KEY_A)
+
     def on_sigterm(_signum, _frame):
         write_state(0)
         presence.set_want(0)
@@ -323,6 +337,7 @@ def daemon():
 
     signal.signal(signal.SIGUSR1, on_sigusr1)
     signal.signal(signal.SIGUSR2, on_sigusr2)
+    signal.signal(signal.SIGHUP, on_sighup)
     signal.signal(signal.SIGTERM, on_sigterm)
     signal.signal(signal.SIGINT, on_sigterm)
 
@@ -331,7 +346,8 @@ def daemon():
 
     log(
         f"démon prêt — AltGr + ':' = {PROFILES[KEY_DOT]['client_id']}, "
-        f"AltGr + '!' = {PROFILES[KEY_SLASH]['client_id']} (clavier {KEYBOARD_DEVICE})"
+        f"AltGr + '!' = {PROFILES[KEY_SLASH]['client_id']}, "
+        f"AltGr + 'a' = {PROFILES[KEY_A]['client_id']} (clavier {KEYBOARD_DEVICE})"
     )
     try:
         fd = os.open(KEYBOARD_DEVICE, os.O_RDONLY | os.O_NONBLOCK)
@@ -341,7 +357,7 @@ def daemon():
 
     pressed = set()
     latched = set()
-    profile_keys = (KEY_DOT, KEY_SLASH)
+    profile_keys = PROFILE_KEYS
     try:
         while not presence.stop_event.is_set():
             if fd is None:
@@ -403,6 +419,8 @@ def main():
         daemon()
     elif "--game" in args:
         signal_daemon(signal.SIGUSR2, "bascule Jeu demandée")
+    elif "--game2" in args:
+        signal_daemon(signal.SIGHUP, "bascule Uncovering things demandée")
     elif "--toggle" in args:
         signal_daemon(signal.SIGUSR1, "bascule Larping demandée")
     elif "--status" in args:
