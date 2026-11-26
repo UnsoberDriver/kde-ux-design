@@ -13,7 +13,7 @@
 #    avec GAME2_CLIENT_ID.
 #    Alt + b (Alt gauche, touche « b ») active / désactive « Fih » avec
 #    GAME3_CLIENT_ID.
-#    Alt + c / d activent « In disbelief » / « Admiring things » avec
+#    Alt + c / d activent « In disbelief » / « Doing things » avec
 #    GAME4_CLIENT_ID / GAME5_CLIENT_ID.
 #
 #  POURQUOI UN DÉMON EVDEV ET PAS UN RACCOURCI KDE
@@ -99,7 +99,7 @@ cat <<'EOF'
   Alt + a    ->  ON  (« En train de jouer à Uncovering things » / GAME2_CLIENT_ID)
   Alt + b    ->  ON  (« En train de jouer à Fih » / GAME3_CLIENT_ID)
   Alt + c    ->  ON  (« En train de jouer à In disbelief » / GAME4_CLIENT_ID)
-  Alt + d    ->  ON  (« En train de jouer à Admiring things » / GAME5_CLIENT_ID)
+  Alt + d    ->  ON  (« En train de jouer à Doing things » / GAME5_CLIENT_ID)
   Réappui sur la même touche  ->  OFF
   Une autre touche remplace directement l'activité.
 

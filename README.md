@@ -622,7 +622,7 @@ containment Plasma.
 - `Alt + c` (**Alt gauche**, touche `c`, `KEY_C` evdev) active
   **« En train de jouer à In disbelief »** avec `GAME4_CLIENT_ID`.
 - `Alt + d` (**Alt gauche**, touche `d`, `KEY_D` evdev) active
-  **« En train de jouer à Admiring things »** avec `GAME5_CLIENT_ID`.
+  **« En train de jouer à Doing things »** avec `GAME5_CLIENT_ID`.
   `AltGr + a` / `b` / `c` / `d` ne déclenchent rien.
 - Un second appui sur **la même** touche coupe l'activité ; appuyer sur
   **une autre** touche remplace directement l'activité courante (une seule
@@ -679,8 +679,8 @@ L'installateur est idempotent : le relancer répare/actualise l'installation.
 | `GAME4_CLIENT_ID` | `1575414626802212874` | client ID du profil `Alt + c` (« In disbelief ») |
 | `GAME4_NAME` | `In disbelief` | texte affiché pour `Alt + c` |
 | `GAME4_ICON_URL` | *(vide)* | badge optionnel (`small_image`) du profil `c` |
-| `GAME5_CLIENT_ID` | `1575414959041413150` | client ID du profil `Alt + d` (« Admiring things ») |
-| `GAME5_NAME` | `Admiring things` | texte affiché pour `Alt + d` |
+| `GAME5_CLIENT_ID` | `1575418107323744317` | client ID du profil `Alt + d` (« Doing things ») |
+| `GAME5_NAME` | `Doing things` | texte affiché pour `Alt + d` |
 | `GAME5_ICON_URL` | *(vide)* | badge optionnel (`small_image`) du profil `d` |
 | `LARPING_KEYBOARD` | *(auto)* | force le périphérique evdev à lire |
 
@@ -701,7 +701,7 @@ L'installateur est idempotent : le relancer répare/actualise l'installation.
 ### Commandes utiles
 
 ```bash
-~/.local/bin/larping --status   # Larping / Jeu / Uncovering / Fih / In disbelief / Admiring / OFF
+~/.local/bin/larping --status   # Larping / Jeu / Uncovering / Fih / In disbelief / Doing / OFF
 ~/.local/bin/larping --toggle   # équivalent AltGr + :
 ~/.local/bin/larping --game     # équivalent AltGr + !
 ~/.local/bin/larping --game2    # équivalent Alt + a

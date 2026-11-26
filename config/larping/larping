@@ -10,7 +10,7 @@ Profils :
     Alt + a    -> GAME2_CLIENT_ID     (défaut : 1575411671898267740)
     Alt + b    -> GAME3_CLIENT_ID     (défaut : 1575412315820392458)
     Alt + c    -> GAME4_CLIENT_ID     (défaut : 1575414626802212874)
-    Alt + d    -> GAME5_CLIENT_ID     (défaut : 1575414959041413150)
+    Alt + d    -> GAME5_CLIENT_ID     (défaut : 1575418107323744317)
 
 Appuyer sur le même raccourci coupe l'activité ; appuyer sur un autre
 remplace l'activité courante par celle de l'autre profil.
@@ -102,9 +102,9 @@ PROFILES = {
         "icon": os.environ.get("GAME4_ICON_URL", ""),
     },
     KEY_D: {
-        "label": "Admiring things",
-        "client_id": os.environ.get("GAME5_CLIENT_ID", "1575414959041413150"),
-        "name": os.environ.get("GAME5_NAME", "Admiring things"),
+        "label": "Doing things",
+        "client_id": os.environ.get("GAME5_CLIENT_ID", "1575418107323744317"),
+        "name": os.environ.get("GAME5_NAME", "Doing things"),
         "icon": os.environ.get("GAME5_ICON_URL", ""),
     },
 }
@@ -482,7 +482,7 @@ def main():
     elif "--game4" in args:
         signal_daemon(signal.SIGURG, "bascule In disbelief demandée")
     elif "--game5" in args:
-        signal_daemon(signal.SIGPWR, "bascule Admiring things demandée")
+        signal_daemon(signal.SIGPWR, "bascule Doing things demandée")
     elif "--toggle" in args:
         signal_daemon(signal.SIGUSR1, "bascule Larping demandée")
     elif "--status" in args:
